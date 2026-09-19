@@ -5,21 +5,16 @@ This is the Modrinth monorepo — it contains all Modrinth projects, both fronte
 ## Architecture
 
 - **Monorepo tooling:** [Turborepo](https://turbo.build/) (`turbo.jsonc`) + [pnpm workspaces](https://pnpm.io/workspaces) (`pnpm-workspace.yaml`)
-- **Frontend:** Vue 3 / Nuxt 3, Tailwind CSS v3
-- **Backend:** Rust (Labrinth API), Postgres, Clickhouse
+- **Frontend:** Vue 3, Tailwind CSS v3
+- **Desktop shell:** Rust + Tauri (`apps/app`, `packages/app-lib`)
 - **Indentation:** Use TAB everywhere, never spaces
 
 ### Apps (`apps/`)
 
 | App               | Description                    |
 | ----------------- | ------------------------------ |
-| `frontend`        | Main Modrinth website (Nuxt 3) |
 | `app-frontend`    | Desktop/app frontend (Vue 3)   |
 | `app`             | Desktop/app shell (Tauri)      |
-| `app-playground`  | Testing playground for app     |
-| `labrinth`        | Backend API service            |
-| `daedalus_client` | Daedalus client implementation |
-| `docs`            | Documentation site (Astro)     |
 
 ### Packages (`packages/`)
 
@@ -31,41 +26,30 @@ This is the Modrinth monorepo — it contains all Modrinth projects, both fronte
 | `app-lib`          | Shared app library                                    |
 | `blog`             | Blog system and changelog data                        |
 | `utils`            | Shared utility functions (mostly deprecated)          |
-| `moderation`       | Moderation utilities                                  |
 | `daedalus`         | Daedalus protocol                                     |
 | `tooling-config`   | ESLint, Prettier, TypeScript configs                  |
 | `ariadne`          | Analytics library                                     |
-| `modrinth-log`     | Logging utilities                                     |
-| `modrinth-maxmind` | MaxMind GeoIP                                         |
-| `modrinth-util`    | General utilities                                     |
-| `muralpay`         | Payment processing                                    |
 | `path-util`        | Path utilities                                        |
-| `sqlx-tracing`     | SQLx query tracing                                    |
 
 ## Pre-PR Commands
 
 Run these from the **root** folder before opening a pull request - do not run these after each prompt the user gives you, only run when asked, ask the user a question if they want to run it if the user indicates that they are about to create a pull request.
 
-- **Website:** `pnpm prepr:frontend:web`
 - **App frontend:** `pnpm prepr:frontend:app`
 - **Frontend libs:** `pnpm prepr:frontend:lib`
-- **All frontend (app+web):** `pnpm prepr`
-- **Labrinth (backend):** See `apps/labrinth/AGENTS.md`
+- **All:** `pnpm prepr`
 
 The website and app `prepr` commands
 
 ## Dev Commands
 
-- **Website:** `pnpm web:dev` (copy `.env` template in `apps/frontend/` first)
 - **App:** `pnpm app:dev` (copy `.env` template in `packages/app-lib/` first)
-- **Storybook (packages/ui):** `pnpm storybook`
 
 ## Project-Specific Instructions
 
 Each project may have its own file with detailed instructions:
 
-- [`apps/labrinth/AGENTS.md`](apps/labrinth/AGENTS.md) — Backend API
-- [`apps/frontend/AGENTS.md`](apps/frontend/AGENTS.md) - Frontend Website
+- [`packages/ui/AGENTS.md`](packages/ui/AGENTS.md) — Shared UI library
 
 ## Code Guidelines
 

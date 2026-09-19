@@ -33,9 +33,7 @@
 	"css.lint.unknownAtRules": "ignore",
 	"scss.lint.unknownAtRules": "ignore",
 	"i18n-ally.localesPaths": [
-		"packages/ui/src/locales",
-		"apps/frontend/src/locales",
-		"packages/moderation/src/locales"
+		"packages/ui/src/locales"
 	],
 	"i18n-ally.pathMatcher": "{locale}/index.{ext}",
 	"i18n-ally.keystyle": "flat",

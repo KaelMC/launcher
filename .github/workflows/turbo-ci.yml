@@ -131,45 +131,12 @@ jobs:
       - name: Setup nextest
         run: cargo binstall --no-confirm --secure --locked cargo-nextest@0.9.133
 
-      # cargo-binstall does not have pre-built binaries for sqlx-cli, so we fall
-      # back to a cached cargo install
-      - name: Setup cargo-sqlx
-        uses: taiki-e/cache-cargo-install-action@417450f3c33ee20393705369577571770643d4c7 # v3.0.7
-        with:
-          tool: sqlx-cli@0.8.6
-          locked: false
-          no-default-features: true
-          features: rustls,postgres
-
       - name: Install dependencies
         run: pnpm install
 
       - name: Set app environment
         working-directory: packages/app-lib
         run: cp .env.staging .env
-
-      # check if labrinth tests will actually run (cache miss)
-      - name: Check if labrinth tests need to run
-        id: check-labrinth
-        run: |
-          LABRINTH_TEST_STATUS=$(pnpm turbo run test --filter=@modrinth/labrinth --dry-run=json | jq -r '.tasks[] | select(.task == "test") | .cache.status')
-          echo "Labrinth test cache status: $LABRINTH_TEST_STATUS"
-          if [ "$LABRINTH_TEST_STATUS" = "HIT" ]; then
-            echo "needs_services=false" >> $GITHUB_OUTPUT
-          else
-            echo "needs_services=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Start services
-        if: steps.check-labrinth.outputs.needs_services == 'true'
-        run: docker compose --profile clustered-redis up --wait
-
-      - name: Setup labrinth environment and database
-        if: steps.check-labrinth.outputs.needs_services == 'true'
-        working-directory: apps/labrinth
-        run: |
-          cp .env.local .env
-          sqlx database setup
 
       - name: Lint and test
         run: pnpm run ci
