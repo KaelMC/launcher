@@ -92,18 +92,6 @@ function normalizeCommandPayload(value: unknown): WireObject {
 	return command
 }
 
-function normalizeFriendPayload(value: unknown): WireObject {
-	const event = taggedObject(value, 'event')
-	if (event.event === 'status_update') {
-		const status = wireObject(event.user_status)
-		event.user_status = {
-			...status,
-			profile_name: nullable(status.profile_name),
-		}
-	}
-	return event
-}
-
 function normalizeLogPayload(value: unknown): WireObject {
 	const payload = wireObject(value)
 	const event = taggedObject(payload.event, 'type')
@@ -232,10 +220,6 @@ export function decodeAppEvent(payload: ArrayBuffer): AppEvent {
 				return { type: event.tag, payload: normalizeCommandPayload(event.value) }
 			case 'warning':
 				return { type: event.tag, payload: wireObject(event.value) }
-			case 'friend':
-				return { type: event.tag, payload: normalizeFriendPayload(event.value) }
-			case 'notification':
-				return { type: event.tag, payload: JSON.parse(String(event.value)) as unknown }
 			case 'log':
 				return { type: event.tag, payload: normalizeLogPayload(event.value) }
 			case 'ads_consent_required':

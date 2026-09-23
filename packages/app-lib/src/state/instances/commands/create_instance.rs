@@ -58,7 +58,7 @@ pub(crate) async fn create_instance(
 
         let icon_path = resolve_icon_path(
             input.icon_path.as_deref(),
-            matches!(&input.link, InstanceLink::SharedInstance { .. }),
+            false,
             state,
         )
         .await?;
@@ -245,14 +245,8 @@ fn content_source_kind(link: &InstanceLink) -> ContentSourceKind {
         | InstanceLink::ServerProjectModpack { .. } => {
             ContentSourceKind::ServerProject
         }
-        InstanceLink::ModrinthHosting { .. } => {
-            ContentSourceKind::ModrinthHosting
-        }
         InstanceLink::ImportedModpack { .. } => {
             ContentSourceKind::ImportedModpack
-        }
-        InstanceLink::SharedInstance { .. } => {
-            ContentSourceKind::SharedInstance
         }
     }
 }

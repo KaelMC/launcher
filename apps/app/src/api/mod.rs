@@ -10,10 +10,8 @@ pub mod jre;
 pub mod logs;
 pub mod metadata;
 pub mod minecraft_skins;
-pub mod mr_auth;
 pub mod onboarding_checklist;
 pub mod process;
-pub mod reports;
 pub mod settings;
 pub mod shortcuts;
 pub mod tags;
@@ -28,10 +26,7 @@ mod ads_occlusion_macos;
 mod ads_occlusion_windows;
 pub mod cache;
 pub mod files;
-pub mod friends;
 pub mod worlds;
-
-mod oauth_utils;
 
 pub type Result<T> = std::result::Result<T, TheseusSerializableError>;
 
@@ -85,31 +80,9 @@ macro_rules! impl_serialize {
             {
                 match self {
                     TheseusSerializableError::Theseus(theseus_error) => {
-                        let unavailable_reason = match theseus_error.raw.as_ref() {
-                            theseus::ErrorKind::SharedInstanceUnavailable(reason) => Some(reason),
-                            _ => None,
-                        };
-                        let code = match theseus_error.raw.as_ref() {
-                            theseus::ErrorKind::SharedInstanceUnavailable(_) => {
-                                Some("shared_instance_unavailable")
-                            }
-                            theseus::ErrorKind::SharedInstancesApiError(_) => {
-                                Some("shared_instances_api_error")
-                            }
-                            _ => None,
-                        };
-                        let mut state = serializer.serialize_struct(
-                            "Theseus",
-                            2 + usize::from(code.is_some()) + usize::from(unavailable_reason.is_some()),
-                        )?;
+                        let mut state = serializer.serialize_struct("Theseus", 2)?;
                         state.serialize_field("field_name", "Theseus")?;
                         state.serialize_field("message", &theseus_error.to_string())?;
-                        if let Some(code) = code {
-                            state.serialize_field("code", code)?;
-                        }
-                        if let Some(reason) = unavailable_reason {
-                            state.serialize_field("reason", reason)?;
-                        }
                         state.end()
                     }
                     $(

@@ -46,12 +46,6 @@ pub async fn run(
         )
         .await?;
     }
-    super::shared::check_shared_instance_availability_before_launch(
-        instance_id,
-        &state,
-    )
-    .await?;
-
     let default_account = Credentials::get_default_credential(&state.pool)
         .await?
         .ok_or_else(|| crate::ErrorKind::NoCredentialsError.as_error())?;
@@ -270,7 +264,6 @@ async fn run_credentials(
                         "server_id": &server_id,
                     }),
                     &state.api_semaphore,
-                    &state.pool,
                 )
                 .await;
 
@@ -316,9 +309,7 @@ fn server_play_project_id(link: &InstanceLink) -> Option<&String> {
         } => Some(project_id),
         InstanceLink::Unmanaged
         | InstanceLink::ModrinthModpack { .. }
-        | InstanceLink::ModrinthHosting { .. }
-        | InstanceLink::ImportedModpack { .. }
-        | InstanceLink::SharedInstance { .. } => None,
+        | InstanceLink::ImportedModpack { .. } => None,
     }
 }
 
@@ -364,9 +355,7 @@ pub async fn try_update_playtime_by_instance_id(
             } => Some(version_id.clone()),
             InstanceLink::Unmanaged
             | InstanceLink::ServerProject { .. }
-            | InstanceLink::ModrinthHosting { .. }
-            | InstanceLink::ImportedModpack { .. }
-            | InstanceLink::SharedInstance { .. } => None,
+            | InstanceLink::ImportedModpack { .. } => None,
         };
         let playtime_update_json = json!({
             "seconds": updated_recent_playtime,
@@ -387,7 +376,6 @@ pub async fn try_update_playtime_by_instance_id(
             concat!(env!("MODRINTH_API_BASE_URL"), "analytics/playtime"),
             serde_json::to_value(hashmap)?,
             &state.api_semaphore,
-            &state.pool,
         )
         .await
     } else {

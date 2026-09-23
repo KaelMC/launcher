@@ -167,9 +167,6 @@
   "app.instance.add-server.cancel": {
     "message": "Batal"
   },
-  "app.instance.admonitions.shared-instance.added-label": {
-    "message": "Ditambah"
-  },
   "app.instance.card.play": {
     "message": "Main"
   },
@@ -226,9 +223,6 @@
   },
   "app.instance.tab.logs": {
     "message": "Log"
-  },
-  "app.instance.tab.share": {
-    "message": "Kongsi"
   },
   "app.instance.tab.worlds": {
     "message": "Dunia"
@@ -346,9 +340,6 @@
   },
   "app.modal.update-to-play.header": {
     "message": "Kemas kini untuk mainkan"
-  },
-  "app.modal.update-to-play.shared-instance-added-label": {
-    "message": "Ditambah"
   },
   "app.nav.home": {
     "message": "Laman utama"
@@ -1574,69 +1565,6 @@
   "app.world.world-item.offline": {
     "message": "Luar Talian"
   },
-  "friends.action.add-friend": {
-    "message": "Tambah rakan"
-  },
-  "friends.action.view-friend-requests": {
-    "message": "{count} {count, plural, other {permintaan}} rakan"
-  },
-  "friends.add-friend.submit": {
-    "message": "Hantar permintaan rakan"
-  },
-  "friends.add-friend.title": {
-    "message": "Menambah rakan"
-  },
-  "friends.add-friend.username.description": {
-    "message": "Ia mungkin berbeza daripada nama pengguna Minecraft mereka!"
-  },
-  "friends.add-friend.username.placeholder": {
-    "message": "Masukkan nama pengguna Modrinth..."
-  },
-  "friends.add-friend.username.title": {
-    "message": "Apakah nama pengguna Modrinth rakan anda?"
-  },
-  "friends.add-friends-to-share": {
-    "message": "<link>Tambah rakan</link> untuk melihat apa yang mereka mainkan!"
-  },
-  "friends.friend.cancel-request": {
-    "message": "Batalkan permintaan"
-  },
-  "friends.friend.remove-friend": {
-    "message": "Alih keluar rakan"
-  },
-  "friends.friend.request-sent": {
-    "message": "Permintaan rakan telah dihantar"
-  },
-  "friends.friend.view-profile": {
-    "message": "Lihat profil"
-  },
-  "friends.heading": {
-    "message": "Rakan"
-  },
-  "friends.heading.active": {
-    "message": "Aktif"
-  },
-  "friends.heading.offline": {
-    "message": "Luar Talian"
-  },
-  "friends.heading.online": {
-    "message": "Dalam Talian"
-  },
-  "friends.heading.pending": {
-    "message": "Menunggu"
-  },
-  "friends.no-friends-match": {
-    "message": "Tiada rakan yang sepadan dengan ''{query}''"
-  },
-  "friends.search-friends-placeholder": {
-    "message": "Cari rakan..."
-  },
-  "friends.section.heading": {
-    "message": "{title} - {count}"
-  },
-  "friends.sign-in-to-add-friends": {
-    "message": "<link>Log masuk ke akaun Modrinth</link> untuk menambah rakan dan melihat apa yang mereka mainkan!"
-  },
   "instance.add-server.add-and-play": {
     "message": "Tambah dan main"
   },
@@ -1738,9 +1666,6 @@
   },
   "instance.server-modal.resource-pack": {
     "message": "Pek sumber"
-  },
-  "instance.settings.sharing.active-invites.uses": {
-    "message": "Penggunaan"
   },
   "instance.settings.tabs.general": {
     "message": "Umum"
@@ -1864,9 +1789,6 @@
   },
   "instance.settings.tabs.window.width.enter": {
     "message": "Masukkan lebar..."
-  },
-  "instance.shared-instance.publish-review.added-label": {
-    "message": "Ditambah"
   },
   "instance.worlds.a_minecraft_server": {
     "message": "Pelayan Minecraft"

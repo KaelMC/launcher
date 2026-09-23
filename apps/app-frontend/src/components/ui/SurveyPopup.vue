@@ -7,7 +7,6 @@ import { onMounted, onUnmounted, ref } from 'vue'
 
 import { release_ads_window_hold, take_ads_window_hold } from '@/helpers/ads.js'
 import { list } from '@/helpers/instance'
-import { get as getCreds } from '@/helpers/mr_auth.ts'
 
 let adsWindowHold = false
 
@@ -16,8 +15,6 @@ type Survey = {
 	tally_id: string
 	type: string
 	condition?: string
-	assigned_users?: string[]
-	dismissed_users?: string[]
 }
 
 type TallyApi = {
@@ -78,9 +75,6 @@ async function openSurvey() {
 		return
 	}
 
-	const creds = await getCreds().catch(handleError)
-	const userId = creds?.user_id
-
 	const formId = availableSurvey.value.tally_id
 
 	const popupOptions = {
@@ -88,9 +82,6 @@ async function openSurvey() {
 		width: 700,
 		autoClose: 2000,
 		hideTitle: true,
-		hiddenFields: {
-			user_id: userId,
-		},
 		onOpen: () => console.info('Opened user survey'),
 		onClose: () => {
 			console.info('Closed user survey')
@@ -148,9 +139,6 @@ async function processPendingSurveys() {
 
 	cleanupOldSurveyDisplayData()
 
-	const creds = await getCreds().catch(handleError)
-	const userId = creds?.user_id
-
 	const instances = (await list().catch(handleError)) ?? []
 	const isActivePlayer = instances.some(
 		(instance) =>
@@ -169,10 +157,8 @@ async function processPendingSurveys() {
 			!!(
 				localStorage.getItem(`survey-${survey.id}-display`) === null &&
 				survey.type === 'tally_app' &&
-				((survey.condition === 'active_player' && isActivePlayer) ||
-					(!!userId &&
-						survey.assigned_users?.includes(userId) &&
-						!survey.dismissed_users?.includes(userId)))
+				survey.condition === 'active_player' &&
+				isActivePlayer
 			),
 	)
 

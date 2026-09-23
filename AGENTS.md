@@ -28,7 +28,6 @@ This is the Modrinth monorepo — it contains all Modrinth projects, both fronte
 | `utils`            | Shared utility functions (mostly deprecated)          |
 | `daedalus`         | Daedalus protocol                                     |
 | `tooling-config`   | ESLint, Prettier, TypeScript configs                  |
-| `ariadne`          | Analytics library                                     |
 | `path-util`        | Path utilities                                        |
 
 ## Pre-PR Commands

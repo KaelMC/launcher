@@ -92,9 +92,6 @@
   "app.action-bar.install.unknown-instance": {
     "message": "Instance không rõ"
   },
-  "app.action-bar.install.updating-shared-content": {
-    "message": "Đang cập nhật nội dung được chia sẻ"
-  },
   "app.action-bar.make-primary-instance": {
     "message": "Đặt làm bản instance chính"
   },
@@ -347,15 +344,6 @@
   "app.home.jump-back-in.view-instance": {
     "message": "Xem phiên bản"
   },
-  "app.hosting.update-required.description": {
-    "message": "Bạn cần cập nhật để sử dụng Modrinth Hosting thông qua ứng dụng Modrinth"
-  },
-  "app.hosting.update-required.download": {
-    "message": "Tải xuống để cập nhật"
-  },
-  "app.hosting.update-required.title": {
-    "message": "Yêu cầu cập nhật ứng dụng Modrinth"
-  },
   "app.install.phase.downloading_content": {
     "message": "Đang tải nội dung"
   },
@@ -403,12 +391,6 @@
   },
   "app.instance.add-server.add": {
     "message": "Thêm"
-  },
-  "app.instance.admonitions.shared-instance.review-header": {
-    "message": "Xem lại các thay đổi"
-  },
-  "app.instance.admonitions.shared-instance.reviewing-button": {
-    "message": "Đang xem xét..."
   },
   "app.instance.card.loading": {
     "message": "Đang tải phiên bản..."
@@ -484,33 +466,6 @@
   },
   "app.instance.mods.unfreeze-content": {
     "message": "Hủy đóng băng phiên bản"
-  },
-  "app.instance.share.empty.description": {
-    "message": "Bạn có thể chia sẻ phiên bản này với bạn bè của mình!"
-  },
-  "app.instance.share.empty.heading": {
-    "message": "Không có bạn để mời"
-  },
-  "app.instance.share.invite-modal.user-limit-reached": {
-    "message": "Phiên bản này đã đạt đến giới hạn {limit} người dùng."
-  },
-  "app.instance.share.locked.empty-description-prefix": {
-    "message": "Bạn cần đăng nhập với tư cách là"
-  },
-  "app.instance.share.locked.empty-description-suffix": {
-    "message": "để truy cập trang này."
-  },
-  "app.instance.share.locked.linked-account-fallback": {
-    "message": "tài khoản được liên kết"
-  },
-  "app.instance.share.locked.switch-account-button": {
-    "message": "Đổi tài khoản"
-  },
-  "app.instance.share.locked.wrong-account-heading": {
-    "message": "Sai tài khoản"
-  },
-  "app.instance.share.members.empty": {
-    "message": "Chưa có người dùng nào tham gia"
   },
   "app.instance.worlds.add-server": {
     "message": "Thêm máy chủ"
@@ -850,69 +805,6 @@
   },
   "app.world.world-item.offline": {
     "message": "Ngoại tuyến"
-  },
-  "friends.action.add-friend": {
-    "message": "Thêm một người bạn"
-  },
-  "friends.action.view-friend-requests": {
-    "message": "{count} {count, plural, other {yêu cầu kết bạn}}"
-  },
-  "friends.add-friend.submit": {
-    "message": "Gửi yêu cầu kết bạn"
-  },
-  "friends.add-friend.title": {
-    "message": "Thêm một người bạn"
-  },
-  "friends.add-friend.username.description": {
-    "message": "Nó có thể khác với tên người dùng Minecraft của họ!"
-  },
-  "friends.add-friend.username.placeholder": {
-    "message": "Nhập tên người dùng Modrinth..."
-  },
-  "friends.add-friend.username.title": {
-    "message": "Tên người dùng Modrinth của bạn của bạn là gì?"
-  },
-  "friends.add-friends-to-share": {
-    "message": "Hãy <link>thêm bạn bè</link> để biết họ đang chơi gì!"
-  },
-  "friends.friend.cancel-request": {
-    "message": "Huỷ yêu cầu"
-  },
-  "friends.friend.remove-friend": {
-    "message": "Xoá bạn bè"
-  },
-  "friends.friend.request-sent": {
-    "message": "Đã gửi yêu cầu kết bạn"
-  },
-  "friends.friend.view-profile": {
-    "message": "Xem thông tin"
-  },
-  "friends.heading": {
-    "message": "Bạn bè"
-  },
-  "friends.heading.active": {
-    "message": "Đang hoạt động"
-  },
-  "friends.heading.offline": {
-    "message": "Ngoại tuyến"
-  },
-  "friends.heading.online": {
-    "message": "Trực tuyến"
-  },
-  "friends.heading.pending": {
-    "message": "Đang chờ"
-  },
-  "friends.no-friends-match": {
-    "message": "Không có người bạn nào phù hợp với ''{query}''"
-  },
-  "friends.search-friends-placeholder": {
-    "message": "Tìm kiếm bạn bè..."
-  },
-  "friends.section.heading": {
-    "message": "{title} - {count}"
-  },
-  "friends.sign-in-to-add-friends": {
-    "message": "<link>Đăng nhập bằng tài khoản Modrinth</link> để kết bạn và xem họ đang chơi gì!"
   },
   "instance.add-server.add-and-play": {
     "message": "Thêm và chơi"

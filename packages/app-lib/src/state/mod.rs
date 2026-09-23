@@ -50,17 +50,8 @@ pub use self::cache::*;
 pub mod content_store;
 pub(crate) mod runtime_cache;
 
-mod friends;
-pub use self::friends::*;
-
-mod tunnel;
-pub use self::tunnel::*;
-
 pub mod db;
 pub(crate) mod db_backup;
-mod mr_auth;
-
-pub use self::mr_auth::*;
 
 mod legacy_converter;
 
@@ -91,8 +82,6 @@ pub struct State {
     instance_content_locks: DashMap<String, Arc<Mutex<()>>>,
     /// Serializes screenshot filesystem reconciliation per instance.
     instance_screenshot_locks: DashMap<String, Arc<Mutex<()>>>,
-    /// Serializes shared instance attachment and recipient mutations per instance.
-    shared_instance_locks: DashMap<String, Arc<Mutex<()>>>,
     /// Serializes canonical synced-option mutations and checkpoint updates.
     synced_options_lock: Mutex<()>,
     pub(crate) game_locale_indexer: crate::api::instance::GameLocaleIndexer,
@@ -110,9 +99,6 @@ pub struct State {
     //
     // /// App identifier string (like com.modrinth.ModrinthApp)
     // pub app_identifier: String,
-    /// Friends socket
-    pub friends_socket: FriendsSocket,
-
     pub restart_after_pending_update: AtomicBool,
 
     pub(crate) pool: SqlitePool,
@@ -138,19 +124,6 @@ impl State {
         lock.lock_owned().await
     }
 
-    pub(crate) async fn lock_shared_instance(
-        &self,
-        instance_id: &str,
-    ) -> OwnedMutexGuard<()> {
-        let lock = self
-            .shared_instance_locks
-            .entry(instance_id.to_string())
-            .or_insert_with(|| Arc::new(Mutex::new(())))
-            .clone();
-
-        lock.lock_owned().await
-    }
-
     pub(crate) async fn lock_instance_screenshots(
         &self,
         instance_id: &str,
@@ -167,7 +140,6 @@ impl State {
     pub(crate) fn remove_instance_locks(&self, instance_id: &str) {
         let _ = self.instance_content_locks.remove(instance_id);
         let _ = self.instance_screenshot_locks.remove(instance_id);
-        let _ = self.shared_instance_locks.remove(instance_id);
     }
 
     pub async fn init(app_identifier: String) -> crate::Result<()> {
@@ -274,22 +246,11 @@ impl State {
                 state.discord_rpc.clear_to_default(true),
                 instances::refresh_all_instances(),
                 Settings::migrate(&state.pool),
-                ModrinthCredentials::refresh_all(),
             );
 
             if let Err(e) = res {
                 tracing::error!("Error running discord RPC: {e}");
             }
-
-            let _ = state
-                .friends_socket
-                .connect(
-                    &state.pool,
-                    &state.api_semaphore,
-                    &state.process_manager,
-                )
-                .await;
-            let _ = FriendsSocket::socket_loop().await;
         });
 
         Ok(())
@@ -372,8 +333,6 @@ impl State {
 
         let process_manager = ProcessManager::new();
 
-        let friends_socket = FriendsSocket::new();
-
         Ok(Arc::new(Self {
             startup_complete: AtomicBool::new(false),
             directories,
@@ -385,14 +344,12 @@ impl State {
             install_db_semaphore: Semaphore::new(1),
             instance_content_locks: DashMap::new(),
             instance_screenshot_locks: DashMap::new(),
-            shared_instance_locks: DashMap::new(),
             synced_options_lock: Mutex::new(()),
             game_locale_indexer:
                 crate::api::instance::GameLocaleIndexer::default(),
             pack_sync_worker: crate::api::instance::PackSyncWorker::default(),
             discord_rpc,
             process_manager,
-            friends_socket,
             restart_after_pending_update: AtomicBool::new(false),
             pool,
             file_watcher,

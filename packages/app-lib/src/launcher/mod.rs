@@ -806,9 +806,7 @@ fn link_project_and_version(
             version_id,
             ..
         } => (project_id.as_ref(), version_id.as_ref()),
-        InstanceLink::Unmanaged
-        | InstanceLink::ModrinthHosting { .. }
-        | InstanceLink::SharedInstance { .. } => (None, None),
+        InstanceLink::Unmanaged => (None, None),
     }
 }
 
@@ -1171,11 +1169,6 @@ pub async fn launch_minecraft(
     let _ = state
         .discord_rpc
         .set_activity(&format!("Playing {}", instance.name), true)
-        .await;
-
-    let _ = state
-        .friends_socket
-        .update_status(Some(instance.name.clone()))
         .await;
 
     // Create Minecraft child by inserting it into the state

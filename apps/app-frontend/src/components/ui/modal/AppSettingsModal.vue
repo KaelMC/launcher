@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import {
 	CoffeeIcon,
-	HeartHandshakeIcon,
 	LanguagesIcon,
 	LightBulbIcon,
 	MicrochipIcon,
@@ -11,7 +10,6 @@ import {
 	Settings2Icon,
 	ShieldIcon,
 	ToggleRightIcon,
-	UserIcon,
 } from '@modrinth/assets'
 import {
 	commonMessages,
@@ -30,8 +28,6 @@ import { platform as getOsPlatform, version as getOsVersion } from '@tauri-apps/
 import { computed, provide, ref } from 'vue'
 
 import PrivacySettings from '@/components/ui/settings/account/PrivacySettings.vue'
-import ProfileSettings from '@/components/ui/settings/account/ProfileSettings.vue'
-import SocialSettings from '@/components/ui/settings/account/SocialSettings.vue'
 import AppearanceSettings from '@/components/ui/settings/display/AppearanceSettings.vue'
 import BehaviorSettings from '@/components/ui/settings/display/BehaviorSettings.vue'
 import FeatureFlagSettings from '@/components/ui/settings/display/FeatureFlagSettings.vue'
@@ -121,18 +117,6 @@ const tabs = [
 		icon: ToggleRightIcon,
 		content: FeatureFlagSettings,
 		developerOnly: true,
-	},
-	{
-		name: commonSettingsMessages.profile,
-		category: tabCategories.account,
-		icon: UserIcon,
-		content: ProfileSettings,
-	},
-	{
-		name: commonSettingsMessages.social,
-		category: tabCategories.account,
-		icon: HeartHandshakeIcon,
-		content: SocialSettings,
 	},
 	{
 		name: defineMessage({
@@ -229,14 +213,6 @@ function show() {
 	modal.value?.show()
 }
 
-function showProfile(): void {
-	const profileTabIndex = availableTabs.value.findIndex((tab) => tab.content === ProfileSettings)
-	if (profileTabIndex >= 0) {
-		modal.value?.setTab(profileTabIndex)
-	}
-	modal.value?.show()
-}
-
 function showFeatureFlags(): void {
 	const featureFlagsTabIndex = availableTabs.value.findIndex(
 		(tab) => tab.content === FeatureFlagSettings,
@@ -257,7 +233,7 @@ function showSyncedOptions(): void {
 	modal.value?.show()
 }
 
-defineExpose({ show, showProfile, showFeatureFlags, showSyncedOptions })
+defineExpose({ show, showFeatureFlags, showSyncedOptions })
 
 const { progress, version: downloadingVersion } = injectAppUpdateDownloadProgress()
 

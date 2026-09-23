@@ -22,28 +22,6 @@ pub struct LabrinthError {
     pub route: Option<String>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[cfg_attr(
-    feature = "export-ts",
-    derive(ts_rs::TS, postcard_bindgen::PostcardBindings)
-)]
-#[serde(rename_all = "snake_case")]
-pub enum SharedInstanceUnavailableReason {
-    Deleted,
-    AccessRevoked,
-    Quarantined,
-}
-
-impl std::fmt::Display for SharedInstanceUnavailableReason {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Deleted => write!(fmt, "deleted"),
-            Self::AccessRevoked => write!(fmt, "access_revoked"),
-            Self::Quarantined => write!(fmt, "quarantined"),
-        }
-    }
-}
-
 #[derive(thiserror::Error, Debug)]
 pub enum ErrorKind {
     #[error("Pack sync inputs changed during preparation")]
@@ -66,11 +44,6 @@ pub enum ErrorKind {
 
     #[error("NBT data structure error: {0}")]
     NBTReprError(#[from] quartz_nbt::NbtReprError),
-
-    #[error("Serialization error (websocket): {0}")]
-    WebsocketSerializationError(
-        #[from] ariadne::networking::serialization::SerializationError,
-    ),
 
     #[error("Error parsing UUID: {0}")]
     UUIDError(#[from] uuid::Error),
@@ -110,12 +83,6 @@ pub enum ErrorKind {
     #[error("{0}")]
     LabrinthError(LabrinthError),
 
-    #[error("Websocket error: {0}")]
-    WSError(#[from] async_tungstenite::tungstenite::Error),
-
-    #[error("Websocket closed before {0} could be received!")]
-    WSClosedError(String),
-
     #[error("Incorrect Sha1 hash for download: {0} != {1}")]
     HashError(String, String),
 
@@ -127,12 +94,6 @@ pub enum ErrorKind {
 
     #[error("Invalid input: {0}")]
     InputError(String),
-
-    #[error("Shared instance unavailable: {0}")]
-    SharedInstanceUnavailable(SharedInstanceUnavailableReason),
-
-    #[error("Shared instances API request failed: {0}")]
-    SharedInstancesApiError(String),
 
     #[error("Join handle error: {0}")]
     JoinError(#[from] tokio::task::JoinError),

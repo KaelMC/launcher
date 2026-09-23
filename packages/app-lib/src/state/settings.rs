@@ -58,6 +58,25 @@ pub struct Settings {
     pub version: usize,
 }
 
+/// Reads the stored feature flags, ignoring flags that no longer exist so that
+/// removing a flag does not reset the ones a user has set.
+fn parse_feature_flags(raw: &str) -> HashMap<FeatureFlag, bool> {
+    let Ok(stored) = serde_json::from_str::<HashMap<String, bool>>(raw) else {
+        return HashMap::new();
+    };
+
+    stored
+        .into_iter()
+        .filter_map(|(name, enabled)| {
+            serde_json::from_value::<FeatureFlag>(serde_json::Value::String(
+                name,
+            ))
+            .ok()
+            .map(|flag| (flag, enabled))
+        })
+        .collect()
+}
+
 fn default_true() -> bool {
     true
 }
@@ -82,12 +101,7 @@ pub enum FeatureFlag {
     AdvancedFiltersCollapsed,
     AlwaysShowCopyDetails,
     HideInstalledModpacks,
-    FriendsActiveCollapsed,
-    FriendsOnlineCollapsed,
-    FriendsOfflineCollapsed,
-    FriendsPendingCollapsed,
     DismissedPhotosensitivityFilterWarning,
-    LocalhostSignIn,
 }
 
 impl Settings {
@@ -161,8 +175,8 @@ impl Settings {
             migrated: res.migrated == 1,
             feature_flags: res
                 .feature_flags
-                .as_ref()
-                .and_then(|x| serde_json::from_str(x).ok())
+                .as_deref()
+                .map(parse_feature_flags)
                 .unwrap_or_default(),
             skipped_update: res.skipped_update,
             pending_update_toast_for_version: res

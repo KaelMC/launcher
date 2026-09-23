@@ -5,11 +5,6 @@
 			@contextmenu.prevent.stop="(event) => handleRightClick(event)"
 		>
 			<ExportModal v-if="!instance.quarantined" ref="exportModal" :instance="instance" />
-			<ConfirmDeleteInstanceModal
-				ref="deleteConfirmModal"
-				:instances="selectedInstanceToDelete ? [selectedInstanceToDelete] : []"
-				@delete="deleteSelectedInstance"
-			/>
 			<InstanceSettingsModal
 				:key="instance.id"
 				ref="settingsModal"
@@ -18,17 +13,6 @@
 				@unlinked="refreshInstance"
 			/>
 			<UpdateToPlayModal ref="updateToPlayModal" :instance="instance" />
-			<SharedInstanceUpdateModal
-				ref="sharedInstanceUpdateModal"
-				@accepted="hideAcceptedSharedInstanceUpdate"
-				@complete="handleSharedInstanceUpdateComplete"
-				@shared-instance-unavailable="handleSharedInstanceUnavailable"
-				@report="(event) => reportSharedInstance(event, true)"
-			/>
-			<SharedInstanceInstallModal
-				ref="sharedInstanceReportModal"
-				@reported="handleSharedInstanceReported"
-			/>
 			<InstancePageHeader
 				:instance="instance"
 				:icon-src="icon"
@@ -51,23 +35,10 @@
 				@open-folder="() => instance && showInstanceInFolder(instance.id)"
 				@export="() => !instance?.quarantined && exportModal?.show()"
 				@create-shortcut="() => createShortcut()"
-				@report="reportSharedInstance"
 			/>
 		</div>
 		<div :class="['px-6', { 'shrink-0': isFixedRender }]">
 			<NavTabs :links="tabs" />
-			<InstanceAdmonitions
-				class="mt-4"
-				:instance="instance"
-				:shared-instance-unavailable-reason="sharedInstanceUnavailableReason"
-				:shared-instance-unavailable-manager="sharedInstanceUnavailableManager"
-				:shared-instance-wrong-account="sharedInstanceWrongAccount"
-				:shared-instance-expected-user-id="sharedInstanceExpectedUserId"
-				:shared-instance-role="instance.shared_instance?.role"
-				:shared-instance-signed-out="sharedInstanceSignedOut"
-				@published="refreshInstance"
-				@delete="requestInstanceDeletion"
-			/>
 		</div>
 		<div :class="['p-6 pt-4', { 'min-h-0 flex-1 overflow-y-auto': isFixedRender }]">
 			<RouterView v-slot="{ Component }">
@@ -97,7 +68,6 @@ import {
 	PlusIcon,
 	StopCircleIcon,
 	TerminalSquareIcon,
-	UserPlusIcon,
 } from '@modrinth/assets'
 import {
 	commonMessages,
@@ -116,10 +86,7 @@ import { computed, type ComputedRef, onUnmounted, ref, shallowRef, watch } from 
 import { onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 
 import ExportModal from '@/components/ui/ExportModal.vue'
-import ConfirmDeleteInstanceModal from '@/components/ui/modal/ConfirmDeleteInstanceModal.vue'
 import UpdateToPlayModal from '@/components/ui/modal/UpdateToPlayModal.vue'
-import SharedInstanceInstallModal from '@/components/ui/shared-instances/shared-instance-install-modal/index.vue'
-import SharedInstanceUpdateModal from '@/components/ui/shared-instances/SharedInstanceUpdateModal.vue'
 import {
 	fetchCachedServerStatus,
 	getFreshCachedServerStatus,
@@ -130,23 +97,14 @@ import { handleSevereError } from '@/composables/use-error.js'
 import { useInstanceConsole } from '@/composables/useInstanceConsole'
 import { trackEvent } from '@/helpers/analytics'
 import { toError } from '@/helpers/errors'
-import {
-	getSharedInstanceUnavailableReason,
-	install_existing_instance,
-	install_get_shared_instance_preview,
-	install_pack_to_existing_instance,
-	isSharedInstanceUnavailableError,
-	type SharedInstanceUnavailableReason,
-} from '@/helpers/install'
+import { install_existing_instance, install_pack_to_existing_instance } from '@/helpers/install'
 import {
 	get_full_path,
 	getInstanceIconUrl,
 	kill,
 	refresh_content_updates,
-	remove,
 	run,
 } from '@/helpers/instance'
-import { useSharedInstanceErrors } from '@/helpers/shared-instance-errors'
 import type { GameInstance } from '@/helpers/types'
 import { createInstanceShortcut, showInstanceInFolder } from '@/helpers/utils.js'
 import type { ServerStatus } from '@/helpers/worlds'
@@ -154,7 +112,6 @@ import { useRootBreadcrumb } from '@/providers/breadcrumbs'
 import { provideInstanceBackup } from '@/providers/instance-backup'
 import { injectServerInstall } from '@/providers/server-install'
 
-import InstanceAdmonitions from './components/admonitions/index.vue'
 import InstancePageHeader from './components/page-header/index.vue'
 import InstanceSettingsModal from './components/settings-modal/index.vue'
 import { provideInstancePage } from './instance-context'
@@ -165,7 +122,6 @@ import {
 	instanceLinkedProjectQueryOptions,
 	instanceProcessesQueryOptions,
 } from './query-options'
-import { createSharedInstanceContext, provideSharedInstance } from './shared-instance-context'
 
 dayjs.extend(relativeTime)
 
@@ -191,7 +147,6 @@ const messages = defineMessages({
 	screenshotsTab: { id: 'app.instance.tab.screenshots', defaultMessage: 'Screenshots' },
 	worldsTab: { id: 'app.instance.tab.worlds', defaultMessage: 'Worlds' },
 	logsTab: { id: 'app.instance.tab.logs', defaultMessage: 'Logs' },
-	shareTab: { id: 'app.instance.tab.share', defaultMessage: 'Share' },
 	shortcutCreated: {
 		id: 'app.instance.shortcut.created',
 		defaultMessage: 'Shortcut created',
@@ -321,19 +276,11 @@ useRootBreadcrumb({
 })
 
 const loading = ref(false)
-const checkingSharedInstanceLaunch = ref(false)
 const subpagePending = ref(false)
 const stopping = ref(false)
 const exportModal = ref<InstanceType<typeof ExportModal>>()
 const updateToPlayModal = ref<InstanceType<typeof UpdateToPlayModal>>()
-const sharedInstanceUpdateModal = ref<InstanceType<typeof SharedInstanceUpdateModal>>()
-const sharedInstanceReportModal = ref<InstanceType<typeof SharedInstanceInstallModal>>()
-const deleteConfirmModal = ref<InstanceType<typeof ConfirmDeleteInstanceModal>>()
 const settingsModal = ref<InstanceType<typeof InstanceSettingsModal>>()
-const selectedInstanceToDelete = ref<GameInstance | null>(null)
-const hiddenSharedInstanceUpdateKey = ref<string | null>(null)
-
-const { notifySharedInstanceError, notifySharedInstanceUnavailable } = useSharedInstanceErrors()
 
 useLoadingBarToken(subpagePending)
 useLoadingBarToken(computed(() => instanceQuery.isPending.value && !instance.value))
@@ -345,34 +292,6 @@ const statusOnline = computed(() => liveServerStatusOnline.value || !!javaServer
 const playersOnline = ref<number | undefined>(undefined)
 const ping = ref<number | undefined>(undefined)
 const loadingServerPing = ref(false)
-const sharedInstanceState = createSharedInstanceContext(
-	instance,
-	offline,
-	notifySharedInstanceError,
-)
-provideSharedInstance(sharedInstanceState)
-const {
-	actionsLocked: sharedInstanceActionsLocked,
-	expectedUserId: sharedInstanceExpectedUserId,
-	refreshUpdatePreview: refreshSharedInstanceUpdatePreview,
-	setUnavailable: setSharedInstanceUnavailable,
-	signedOut: sharedInstanceSignedOut,
-	unavailableManager: sharedInstanceUnavailableManager,
-	unavailableReason: sharedInstanceUnavailableReason,
-	updatePreview: sharedInstanceUpdatePreview,
-	wrongAccount: sharedInstanceWrongAccount,
-} = sharedInstanceState
-const sharedInstanceUpdateKey = computed(() => {
-	const instanceId = instance.value?.id
-	const latestVersion = sharedInstanceUpdatePreview.value?.latestVersion
-	return instanceId && latestVersion !== undefined ? `${instanceId}:${latestVersion}` : null
-})
-const sharedInstanceUpdateAvailable = computed(
-	() =>
-		sharedInstanceUpdatePreview.value?.updateAvailable === true &&
-		sharedInstanceUpdateKey.value !== hiddenSharedInstanceUpdateKey.value,
-)
-
 function applyServerStatus(status: ServerStatus) {
 	playersOnline.value = status.players?.online
 	ping.value = status.ping
@@ -422,7 +341,7 @@ watch(
 )
 
 async function refreshInstance() {
-	await Promise.all([instanceQuery.refetch(), sharedInstanceState.refreshAvailability()])
+	await instanceQuery.refetch()
 }
 
 async function refreshPlayState() {
@@ -460,19 +379,6 @@ const renderMode = computed<'scroll' | 'fixed'>(() =>
 	route.meta.renderMode === 'fixed' ? 'fixed' : 'scroll',
 )
 const isFixedRender = computed(() => renderMode.value === 'fixed')
-const currentUserCanUseSharedInstances = sharedInstanceState.currentUserCanUseSharedInstances
-const showShareTab = computed(() => {
-	const linkType = instance.value?.link?.type
-
-	return (
-		currentUserCanUseSharedInstances.value &&
-		!instance.value?.quarantined &&
-		instance.value?.shared_instance?.role !== 'member' &&
-		linkType !== 'server_project' &&
-		linkType !== 'server_project_modpack'
-	)
-})
-
 const tabs = computed(() => {
 	const instanceTabs = [
 		{
@@ -512,29 +418,8 @@ const tabs = computed(() => {
 		icon: TerminalSquareIcon,
 	})
 
-	if (showShareTab.value) {
-		instanceTabs.push({
-			label: formatMessage(messages.shareTab),
-			href: `${basePath.value}/share`,
-			icon: UserPlusIcon,
-		})
-	}
-
 	return instanceTabs
 })
-
-watch(
-	() => ({
-		quarantined: instance.value?.quarantined ?? false,
-		routeName: router.currentRoute.value.name,
-	}),
-	({ quarantined, routeName }) => {
-		if (quarantined && routeName === 'InstanceShare') {
-			void router.replace(basePath.value)
-		}
-	},
-	{ immediate: true },
-)
 
 const options = ref<InstanceType<typeof ContextMenu> | null>(null)
 
@@ -558,89 +443,12 @@ const launchInstance = async (context: string) => {
 	})
 }
 
-async function handleSharedInstanceUnavailable(
-	reason: SharedInstanceUnavailableReason | null = null,
-) {
-	notifySharedInstanceUnavailable(reason, sharedInstanceUnavailableManager.value)
-	await refreshInstance()
-	setSharedInstanceUnavailable(reason)
-}
-
-function reviewSharedInstanceUpdate(event?: MouseEvent) {
-	const currentInstance = instance.value
-	const preview = sharedInstanceUpdatePreview.value
-	if (
-		!currentInstance ||
-		currentInstance.shared_instance?.role !== 'member' ||
-		!preview?.updateAvailable
-	) {
-		return
-	}
-
-	sharedInstanceUpdateModal.value?.show(
-		currentInstance,
-		preview,
-		async () => {
-			await refreshInstance()
-		},
-		event,
-	)
-}
-
-function hideAcceptedSharedInstanceUpdate() {
-	hiddenSharedInstanceUpdateKey.value = sharedInstanceUpdateKey.value
-}
-
-function handleSharedInstanceUpdateComplete(successful: boolean) {
-	if (!successful && hiddenSharedInstanceUpdateKey.value === sharedInstanceUpdateKey.value) {
-		hiddenSharedInstanceUpdateKey.value = null
-	}
-}
-
 const startInstance = async (context: string) => {
 	if (!instance.value || instance.value.quarantined) return
-	if (checkingSharedInstanceLaunch.value || loading.value || playing.value) return
-
-	const instanceId = instance.value.id
-	const isSharedInstanceMember = instance.value.shared_instance?.role === 'member'
-	const canCheckSharedInstanceUpdate =
-		!!instance.value.shared_instance && !sharedInstanceActionsLocked.value && !offline.value
-
-	if (canCheckSharedInstanceUpdate) {
-		let preview: Awaited<ReturnType<typeof refreshSharedInstanceUpdatePreview>> = null
-		checkingSharedInstanceLaunch.value = true
-		try {
-			preview = await refreshSharedInstanceUpdatePreview()
-		} catch (error) {
-			if (isSharedInstanceUnavailableError(error)) {
-				await handleSharedInstanceUnavailable(getSharedInstanceUnavailableReason(error))
-				return
-			}
-			notifySharedInstanceError(error)
-		} finally {
-			checkingSharedInstanceLaunch.value = false
-		}
-
-		if (instance.value?.id !== instanceId) return
-
-		if (preview?.updateAvailable && sharedInstanceUpdateModal.value) {
-			sharedInstanceUpdateModal.value.show(instance.value, preview, async () => {
-				await refreshInstance()
-				await launchInstance(context)
-			})
-			return
-		}
-	}
+	if (loading.value || playing.value) return
 
 	if (updateToPlayModal.value?.hasUpdate) {
-		if (isSharedInstanceMember) {
-			updateToPlayModal.value.show(instance.value, null, async () => {
-				await refreshInstance()
-				await launchInstance(context)
-			})
-		} else {
-			updateToPlayModal.value.show(instance.value)
-		}
+		updateToPlayModal.value.show(instance.value)
 		return
 	}
 
@@ -734,48 +542,6 @@ const createShortcut = async () => {
 	}
 }
 
-async function reportSharedInstance(event?: MouseEvent, closeUpdateModal = false) {
-	const reportInstance = instance.value
-	const sharedInstance = reportInstance?.shared_instance
-	if (!reportInstance || sharedInstance?.role !== 'member') return
-
-	try {
-		const preview = await install_get_shared_instance_preview(
-			sharedInstance.id,
-			reportInstance.name,
-		)
-		if (instance.value?.id !== reportInstance.id) return
-		if (closeUpdateModal) sharedInstanceUpdateModal.value?.hide()
-		sharedInstanceReportModal.value?.showReport(preview, sharedInstance.manager_id, event)
-	} catch (error) {
-		notifySharedInstanceError(error)
-	}
-}
-
-function handleSharedInstanceReported(deleteInstance: boolean) {
-	if (!deleteInstance || !instance.value) return
-	requestInstanceDeletion()
-}
-
-function requestInstanceDeletion() {
-	if (!instance.value) return
-	selectedInstanceToDelete.value = instance.value
-	deleteConfirmModal.value?.show()
-}
-
-async function deleteSelectedInstance() {
-	const selectedInstance = selectedInstanceToDelete.value
-	selectedInstanceToDelete.value = null
-	if (!selectedInstance) return
-
-	trackEvent('InstanceRemove', {
-		loader: selectedInstance.loader,
-		game_version: selectedInstance.game_version,
-	})
-	await router.push({ path: '/' })
-	await remove(selectedInstance.id).catch((error) => handleError(toError(error)))
-}
-
 const handleRightClick = (event: MouseEvent) => {
 	const canAddContent = !instance.value?.quarantined
 
@@ -838,7 +604,6 @@ provideInstancePage({
 	instance: instance as ComputedRef<GameInstance>,
 	linkedProject: linkedProjectV3,
 	isServerInstance,
-	sharedInstanceUpdateAvailable,
 	offline,
 	playing,
 	loading,
@@ -851,7 +616,6 @@ provideInstancePage({
 	openSettings,
 	browseContent,
 	browseServers,
-	reviewSharedInstanceUpdate,
 })
 provideInstanceBackup(() => instance.value!)
 

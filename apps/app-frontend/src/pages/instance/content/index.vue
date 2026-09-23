@@ -21,23 +21,13 @@
 					:header="managedContentModalHeader"
 					:source-name="managedContent?.card.manager.name"
 					:source-icon-url="managedContent?.card.manager.iconUrl"
-					:enable-toggle="!isServerInstance && !isSharedMember && !isQuarantined"
+					:enable-toggle="!isServerInstance && !isQuarantined"
 					:action-disabled="isBulkOperating || isInstanceBusy"
 					:get-overflow-options="getOverflowOptions"
-					:switch-version="
-						isServerInstance || isSharedMember || isQuarantined ? undefined : handleSwitchVersion
-					"
-					@update:enabled="handleManagedContentToggle"
-					@bulk:enable="(items) => handleManagedContentBulkToggle(items, true)"
-					@bulk:disable="(items) => handleManagedContentBulkToggle(items, false)"
-				/>
-				<ConfirmDisableModal
-					ref="sharedDisableConfirmModal"
-					:count="pendingManagedContentDisableItems.length"
-					:item-type="formatMessage(messages.contentTypeProject)"
-					:warning="managedContentPolicy.disableWarning(pendingManagedContentDisableItems)"
-					:action-disabled="isInstanceBusy"
-					@disable="confirmPendingManagedContentDisable"
+					:switch-version="isServerInstance || isQuarantined ? undefined : handleSwitchVersion"
+					@update:enabled="toggleDisableDebounced"
+					@bulk:enable="(items) => setManagedContentEnabled(items, true)"
+					@bulk:disable="(items) => setManagedContentEnabled(items, false)"
 				/>
 				<ConfirmModpackUpdateModal
 					ref="modpackUpdateConfirmModal"
@@ -95,7 +85,6 @@ import {
 	type BulkOperationStatus,
 	type ButtonMenuOption,
 	commonMessages,
-	ConfirmDisableModal,
 	ConfirmModpackUpdateModal,
 	ContentCardLayout as ContentPageLayout,
 	type ContentItem,
@@ -137,7 +126,6 @@ import {
 	add_project_from_path,
 	edit,
 	get_linked_modpack_content,
-	get_shared_instance_publish_preview,
 	getInstanceIconUrl,
 	is_file_on_modrinth,
 	remove_project,
@@ -157,7 +145,6 @@ import { injectContentInstall } from '@/providers/content-install'
 
 import { injectInstancePage } from '../instance-context'
 import { instanceContentQueryOptions, instanceKeys } from '../query-options'
-import { injectSharedInstance } from '../shared-instance-context'
 
 type InstanceBulkUpdateProgress = AppEventPayload<'instance_bulk_update_progress'>
 
@@ -245,17 +232,11 @@ const skipNonEssentialWarnings = computed(() =>
 )
 
 const instancePage = injectInstancePage()
-const sharedInstanceState = injectSharedInstance()
 const instance = instancePage.instance
 const isServerInstance = instancePage.isServerInstance
 const openSettings = () => instancePage.openSettings(1)
 const managedContentPolicy = useManagedContentPolicy(computed(() => instance.value))
-const {
-	isManagedModpack: isSharedMember,
-	isQuarantined,
-	canMutateContent,
-	canUpdateContent: canUpdateProject,
-} = managedContentPolicy
+const { isQuarantined, canMutateContent, canUpdateContent: canUpdateProject } = managedContentPolicy
 
 const contentQuery = useQuery(
 	computed(() => ({
@@ -355,7 +336,6 @@ watch(
 const isModpackUpdating = ref(false)
 const isBulkOperating = ref(false)
 const isInstanceBusy = computed(() => instance.value?.install_stage !== 'installed')
-const showSharedContentFilter = computed(() => instance.value.shared_instance?.role === 'member')
 const isPackLocked = computed(
 	() =>
 		instance.value.quarantined ||
@@ -368,8 +348,6 @@ const exportModal = ref(null)
 const contentUpdaterModal = ref<InstanceType<typeof ContentUpdaterModal> | null>()
 const managedContentModal = ref<InstanceType<typeof ManagedContentModal> | null>()
 const modpackUpdateConfirmModal = ref<InstanceType<typeof ConfirmModpackUpdateModal> | null>()
-const sharedDisableConfirmModal = ref<InstanceType<typeof ConfirmDisableModal> | null>()
-const pendingManagedContentDisableItems = ref<ContentItem[]>([])
 const unknownFileWarningModal = ref<InstanceType<typeof UnknownFileWarningModal> | null>()
 const unknownFileName = ref('')
 let resolveUnknownFileConfirmation: ((confirmed: boolean) => void) | null = null
@@ -386,23 +364,15 @@ const modpackContentQuery = useQuery({
 	),
 })
 
-const hasSharedManagedContent = computed(() => {
-	if (instance.value.shared_instance?.role === 'owner') return false
-
+const hasServerManagedContent = computed(() => {
 	const linkType = instance.value.link?.type
-	return (
-		!!instance.value.shared_instance ||
-		linkType === 'server_project' ||
-		linkType === 'server_project_modpack'
-	)
+	return linkType === 'server_project' || linkType === 'server_project_modpack'
 })
 
 const managedContentItems = computed(() => {
 	const linkedContent = modpackContentQuery.data.value ?? []
-	const sourcedContent = hasSharedManagedContent.value
-		? projects.value.filter((item) =>
-				['server_project', 'shared_instance'].includes(item.source_kind ?? ''),
-			)
+	const sourcedContent = hasServerManagedContent.value
+		? projects.value.filter((item) => item.source_kind === 'server_project')
 		: []
 
 	return dedupeManagedContentItems([...linkedContent, ...sourcedContent])
@@ -429,66 +399,28 @@ const managedContentSummary = computed(() =>
 )
 
 const managedContent = computed<ManagedContentData | null>(() => {
-	const attachment = instance.value.shared_instance
-	const sharedManager = sharedInstanceState.manager.value
 	const linkedProject = instancePage.linkedProject.value
-	const linkType = instance.value.link?.type
-	const isSharedOwner = attachment?.role === 'owner'
 
-	if (
-		(linkType === 'server_project' || linkType === 'server_project_modpack') &&
-		managedContentItems.value.length === 0
-	) {
-		return null
-	}
-
-	if (
-		!isSharedOwner &&
-		(attachment || linkType === 'server_project' || linkType === 'server_project_modpack')
-	) {
-		const serverManaged =
-			sharedManager?.type === 'server' ||
-			!!attachment?.server_manager_name ||
-			linkType === 'server_project' ||
-			linkType === 'server_project_modpack' ||
-			(!attachment && isServerInstance.value)
-		const managerName = serverManaged
-			? (sharedManager?.name ??
-				attachment?.server_manager_name ??
-				linkedProject?.name ??
-				instance.value.name)
-			: (sharedManager?.name ?? instance.value.name)
-		const managerIcon = serverManaged
-			? (sharedManager?.avatarUrl ??
-				attachment?.server_manager_icon_url ??
-				linkedProject?.icon_url ??
-				undefined)
-			: (sharedManager?.avatarUrl ?? getInstanceIconUrl(instance.value.icon_path) ?? undefined)
-		const managerLink = serverManaged
-			? linkedProject
-				? {
-						path: `/project/${linkedProject.slug ?? linkedProject.id}`,
-						query: { i: instancePage.instanceId.value },
-					}
-				: undefined
-			: sharedManager?.type === 'user'
-				? `/user/${encodeURIComponent(sharedManager.name)}`
-				: undefined
+	if (hasServerManagedContent.value) {
+		if (managedContentItems.value.length === 0) return null
 
 		return {
 			card: {
-				kind: serverManaged ? 'server' : 'shared-instance',
+				kind: 'server',
 				installing: isInstanceBusy.value,
 				manager: {
-					name: managerName,
-					iconUrl: managerIcon,
-					link: managerLink,
+					name: linkedProject?.name ?? instance.value.name,
+					iconUrl: linkedProject?.icon_url ?? undefined,
+					link: linkedProject
+						? {
+								path: `/project/${linkedProject.slug ?? linkedProject.id}`,
+								query: { i: instancePage.instanceId.value },
+							}
+						: undefined,
 				},
 				summary: managedContentSummary.value,
-				syncedAt: sharedInstanceState.lastUpdateCheckAt.value,
-				updateAvailable: instancePage.sharedInstanceUpdateAvailable.value,
 			},
-			disabled: attachment?.status === 'applying' || isInstanceBusy.value,
+			disabled: isInstanceBusy.value,
 			disabledText: formatMessage(commonMessages.updatingLabel),
 		}
 	}
@@ -609,14 +541,6 @@ function canToggleContent(item: ContentItem) {
 
 function canChangeContentVersion(item: ContentItem) {
 	return canMutateContent(item) && !item.locked
-}
-
-async function reconcileSharedInstancePublishState() {
-	if (instance.value.shared_instance?.role !== 'owner') return
-
-	await get_shared_instance_publish_preview(instance.value.id).catch((error) => {
-		debug('Failed to reconcile shared instance publish state', { error })
-	})
 }
 
 function setContentItemBusy(item: ContentItem, busy: boolean, originalFileName = item.file_name) {
@@ -828,11 +752,7 @@ async function handleUnknownFileContinue(dontShowAgain: boolean) {
 	resolveUnknownFileWarning(true)
 }
 
-async function toggleDisableMod(
-	mod: ContentItem,
-	desiredEnabled?: boolean,
-	reconcileSharedState = true,
-) {
+async function toggleDisableMod(mod: ContentItem, desiredEnabled?: boolean) {
 	if (!mod.file_path || !canToggleContent(mod)) return
 	const operation = beginContentOperation(mod)
 	if (!operation) return
@@ -844,7 +764,6 @@ async function toggleDisableMod(
 			await set_synced_pack_enabled(mod.synced_pack.id, desiredEnabled ?? !mod.enabled)
 			await refreshContentState('must_revalidate')
 			await queryClient.invalidateQueries({ queryKey: syncedPackKeys.all })
-			if (reconcileSharedState) await reconcileSharedInstancePublishState()
 			return
 		}
 		const newPath = await toggle_disable_project(instance.value.id, mod.file_path, desiredEnabled)
@@ -872,10 +791,6 @@ async function toggleDisableMod(
 			project_type: mod.project_type,
 			disabled: !enabled,
 		})
-
-		if (reconcileSharedState) {
-			await reconcileSharedInstancePublishState()
-		}
 	} catch (err) {
 		handleError(err as Error)
 	} finally {
@@ -1218,35 +1133,8 @@ async function handleSwitchVersion(item: ContentItem) {
 	updatingProjectVersions.value = versions
 }
 
-async function handleManagedContentToggle(item: ContentItem, enabled: boolean) {
-	if (!enabled && managedContentPolicy.disableWarning([item])) {
-		pendingManagedContentDisableItems.value = [item]
-		sharedDisableConfirmModal.value?.show()
-		return
-	}
-
-	await toggleDisableDebounced(item, enabled)
-}
-
-async function handleManagedContentBulkToggle(items: ContentItem[], enabled: boolean) {
-	if (!enabled && managedContentPolicy.disableWarning(items)) {
-		pendingManagedContentDisableItems.value = items
-		sharedDisableConfirmModal.value?.show()
-		return
-	}
-
-	await setManagedContentEnabled(items, enabled)
-}
-
-async function confirmPendingManagedContentDisable() {
-	const items = [...pendingManagedContentDisableItems.value]
-	pendingManagedContentDisableItems.value = []
-	await setManagedContentEnabled(items, false)
-}
-
 async function setManagedContentEnabled(items: ContentItem[], enabled: boolean) {
-	await Promise.all(items.map((item) => toggleDisableMod(item, enabled, false)))
-	await reconcileSharedInstancePublishState()
+	await Promise.all(items.map((item) => toggleDisableMod(item, enabled)))
 }
 
 async function handleManagedContent() {
@@ -1651,25 +1539,21 @@ provideContentManager({
 		await Promise.all(
 			items
 				.filter((item) => canToggleContent(item) && !item.enabled)
-				.map((item) => toggleDisableMod(item, true, false)),
+				.map((item) => toggleDisableMod(item, true)),
 		)
-		await reconcileSharedInstancePublishState()
 	},
 	bulkDisableItems: async (items: ContentItem[]) => {
 		await Promise.all(
 			items
 				.filter((item) => canToggleContent(item) && item.enabled)
-				.map((item) => toggleDisableMod(item, false, false)),
+				.map((item) => toggleDisableMod(item, false)),
 		)
-		await reconcileSharedInstancePublishState()
 	},
 	deleteItem: removeMod,
 	bulkDeleteItems: (items: ContentItem[]) =>
 		Promise.all(items.filter(canDeleteContent).map((item) => removeMod(item))).then(() => {}),
 	canDeleteItem: canDeleteContent,
 	canToggleItem: canToggleContent,
-	getDeleteWarning: managedContentPolicy.deleteWarning,
-	getDisableWarning: managedContentPolicy.disableWarning,
 	confirmAction: packActions.confirmAction,
 	confirmDeleteItems: packActions.confirmDeleteItems,
 	getDeleteDependencyWarning,
@@ -1681,11 +1565,9 @@ provideContentManager({
 	bulkUpdateAll: bulkUpdateAllProjects,
 	bulkUpdateItem: updateProject,
 	runManagedContentPrimaryAction:
-		instance.value.shared_instance?.role === 'member'
-			? instancePage.reviewSharedInstanceUpdate
-			: instance.value.link?.type === 'modrinth_modpack' && !isQuarantined.value
-				? handleModpackUpdate
-				: undefined,
+		instance.value.link?.type === 'modrinth_modpack' && !isQuarantined.value
+			? handleModpackUpdate
+			: undefined,
 	viewManagedContent: handleManagedContent,
 	unlinkModpack: unpairInstance,
 	openManagedContentSettings: openSettings,
@@ -1732,7 +1614,6 @@ provideContentManager({
 		hideSwitchVersion: !canChangeContentVersion(item) || !item.project?.id || !item.version?.id,
 		hasUpdate: canUpdateProject(item) && !item.locked,
 	}),
-	showSharedContentFilter,
 	filterPersistKey: instance.value.id,
 })
 

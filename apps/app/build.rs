@@ -128,22 +128,6 @@ fn main() {
                     ),
             )
             .plugin(
-                "mr-auth",
-                InlinedPlugin::new()
-                    .commands(&[
-                        "modrinth_login",
-                        "logout",
-                        "get",
-                        "get_all",
-                        "set_active",
-                        "remove_account",
-                        "cancel_modrinth_login",
-                    ])
-                    .default_permission(
-                        DefaultPermissionRule::AllowAllCommands,
-                    ),
-            )
-            .plugin(
                 "onboarding-checklist",
                 InlinedPlugin::new()
                     .commands(&["get_onboarding_checklist"])
@@ -158,11 +142,6 @@ fn main() {
                         "install_get_modpack_preview",
                         "install_create_instance",
                         "install_create_modpack_instance",
-                        "install_get_shared_instance_preview",
-                        "install_accept_shared_instance_invite",
-                        "install_get_shared_instance_update_preview",
-                        "install_shared_instance",
-                        "install_update_shared_instance",
                         "install_import_instance",
                         "install_duplicate_instance",
                         "install_existing_instance",
@@ -189,14 +168,6 @@ fn main() {
                         "process_kill",
                         "process_wait_for",
                     ])
-                    .default_permission(
-                        DefaultPermissionRule::AllowAllCommands,
-                    ),
-            )
-            .plugin(
-                "reports",
-                InlinedPlugin::new()
-                    .commands(&["reports_create"])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,
                     ),
@@ -289,17 +260,6 @@ fn main() {
                         "instance_edit_generated_icon",
                         "instance_cache_generated_icon",
                         "instance_get_recent_icon_configs",
-                        "instance_share_can_current_user_use",
-                        "instance_share_get_users",
-                        "instance_share_invite_users",
-                        "instance_share_create_invite_link",
-                        "instance_share_get_invites",
-                        "instance_share_revoke_invite",
-                        "instance_share_remove_users",
-                        "instance_share_get_publish_preview",
-                        "instance_share_publish",
-                        "instance_share_unlink",
-                        "instance_share_unpublish",
                         "instance_export_mrpack",
                         "instance_get_pack_export_candidates",
                     ])
@@ -420,19 +380,6 @@ fn main() {
                         "file_delete",
                         "file_save_as",
                         "file_read_dragged_file",
-                    ])
-                    .default_permission(
-                        DefaultPermissionRule::AllowAllCommands,
-                    ),
-            )
-            .plugin(
-                "friends",
-                InlinedPlugin::new()
-                    .commands(&[
-                        "friends",
-                        "friend_statuses",
-                        "add_friend",
-                        "remove_friend",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,

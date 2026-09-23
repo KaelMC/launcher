@@ -356,21 +356,6 @@ pub static REQWEST_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
         .expect("client configuration should be valid")
 });
 
-pub static INSECURE_NO_TIMEOUT_REQWEST_CLIENT: LazyLock<reqwest::Client> =
-    LazyLock::new(|| {
-        reqwest_client_builder()
-            .build()
-            .expect("client configuration should be valid")
-    });
-
-pub static NO_TIMEOUT_REQWEST_CLIENT: LazyLock<reqwest::Client> =
-    LazyLock::new(|| {
-        reqwest_client_builder()
-            .https_only(true)
-            .build()
-            .expect("client configuration should be valid")
-    });
-
 const FETCH_ATTEMPTS: usize = 2;
 
 pub type FetchProgressFn<'a> = dyn FnMut(
@@ -521,28 +506,6 @@ pub async fn fetch_file(
         FetchBody::File(file) => Ok(file),
         FetchBody::Memory(_) => unreachable!("requested a file download"),
     }
-}
-
-pub async fn fetch_file_mirrors(
-    mirrors: &[&str],
-    sha1: Option<&str>,
-    download_meta: Option<&DownloadMeta>,
-    uri_path: Option<&'static str>,
-    semaphore: &FetchSemaphore,
-    exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
-    progress: Option<&mut FetchProgressFn<'_>>,
-) -> crate::Result<DownloadedFile> {
-    fetch_file_mirrors_in(
-        mirrors,
-        sha1,
-        download_meta,
-        uri_path,
-        semaphore,
-        exec,
-        progress,
-        None,
-    )
-    .await
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -953,7 +916,7 @@ async fn fetch_advanced_with_target(
     loading_bar: Option<(&LoadingBarId, f64)>,
     uri_path: Option<&'static str>,
     semaphore: &FetchSemaphore,
-    exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite>,
+    _exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite>,
     client: &reqwest::Client,
     mut progress: Option<&mut FetchProgressFn<'_>>,
     to_file: bool,
@@ -965,16 +928,6 @@ async fn fetch_advanced_with_target(
     let is_api_url = url.starts_with(env!("MODRINTH_API_URL"))
         || url.starts_with(env!("MODRINTH_API_URL_V3"));
     let fence_key = if is_api_url { uri_path } else { None };
-
-    let creds = if header
-        .as_ref()
-        .is_none_or(|x| &*x.0.to_lowercase() != "authorization")
-        && (url.starts_with("https://cdn.modrinth.com") || is_api_url)
-    {
-        crate::state::ModrinthCredentials::get_active(exec).await?
-    } else {
-        None
-    };
 
     let download_meta_header = download_meta
         .map(|m| (DOWNLOAD_META_HEADER.to_string(), m.to_header_value()));
@@ -1003,10 +956,6 @@ async fn fetch_advanced_with_target(
 
         if let Some(header) = header {
             req = req.header(header.0, header.1);
-        }
-
-        if let Some(ref creds) = creds {
-            req = req.header("Authorization", &creds.session);
         }
 
         if let Some((name, value)) = &download_meta_header {
@@ -1156,17 +1105,10 @@ pub async fn post_json(
     url: &str,
     json_body: serde_json::Value,
     semaphore: &FetchSemaphore,
-    exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite>,
 ) -> crate::Result<()> {
     let _permit = semaphore.0.acquire().await?;
 
-    let mut req = INSECURE_REQWEST_CLIENT.post(url).json(&json_body);
-
-    if let Some(creds) =
-        crate::state::ModrinthCredentials::get_active(exec).await?
-    {
-        req = req.header("Authorization", &creds.session);
-    }
+    let req = INSECURE_REQWEST_CLIENT.post(url).json(&json_body);
 
     req.send().await?.error_for_status()?;
     Ok(())
