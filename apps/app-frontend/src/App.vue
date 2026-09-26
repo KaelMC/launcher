@@ -65,7 +65,6 @@ import UnknownPackWarningModal from '@/components/ui/install_flow/UnknownPackWar
 import IconEditorModal from '@/components/ui/instance_settings/icon-editor-modal/index.vue'
 import MinecraftAuthErrorModal from '@/components/ui/minecraft-auth-error-modal/MinecraftAuthErrorModal.vue'
 import MinecraftRequiredModal from '@/components/ui/minecraft-required-modal/MinecraftRequiredModal.vue'
-import AppSettingsModal from '@/components/ui/modal/AppSettingsModal.vue'
 import InstallToPlayModal from '@/components/ui/modal/InstallToPlayModal.vue'
 import ModpackAlreadyInstalledModal from '@/components/ui/modal/ModpackAlreadyInstalledModal.vue'
 import UpdateToPlayModal from '@/components/ui/modal/UpdateToPlayModal.vue'
@@ -970,7 +969,6 @@ const incompatibilityWarningModal = ref()
 const installToPlayModal = ref()
 const updateToPlayModal = ref()
 
-const appSettingsModal = ref()
 const syncInstancesUpdateModal = ref()
 let syncInstancesUpdateNotificationId = null
 
@@ -1008,7 +1006,9 @@ function showSyncInstancesUpdateNotification() {
 	syncInstancesUpdateNotificationId = notification.id
 }
 
-provide(appSettingsModalOpenSyncedOptionsKey, () => appSettingsModal.value?.showSyncedOptions())
+provide(appSettingsModalOpenSyncedOptionsKey, () =>
+	router.push({ path: '/settings', query: { tab: 'synced-options' } }),
+)
 
 watch(
 	() => appSettings.getFeatureFlag('show_sync_instances_update_modal'),
@@ -1542,7 +1542,6 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 				</span>
 			</div>
 		</Transition>
-		<AppSettingsModal ref="appSettingsModal" />
 		<SyncInstancesUpdateModal ref="syncInstancesUpdateModal" />
 		<CreationFlowModal
 			ref="installationModal"
@@ -1615,7 +1614,8 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			</suspense>
 			<NavButton
 				v-tooltip.right="formatMessage(commonMessages.settingsLabel)"
-				:to="() => appSettingsModal?.show()"
+				to="/settings"
+				:is-primary="(route) => route.path === '/settings'"
 			>
 				<SettingsIcon />
 			</NavButton>

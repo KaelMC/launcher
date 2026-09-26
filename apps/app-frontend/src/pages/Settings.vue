@@ -17,15 +17,17 @@ import {
 	defineMessage,
 	defineMessages,
 	injectNotificationManager,
+	LoadingIndicator,
+	PageHeader,
 	ProgressBar,
-	TabbedModal,
 	UnsavedChangesPopup,
 	useVIntl,
 } from '@modrinth/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { getVersion } from '@tauri-apps/api/app'
 import { platform as getOsPlatform, version as getOsVersion } from '@tauri-apps/plugin-os'
-import { computed, provide, ref } from 'vue'
+import { computed, provide, ref, watch } from 'vue'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
 import PrivacySettings from '@/components/ui/settings/account/PrivacySettings.vue'
 import AppearanceSettings from '@/components/ui/settings/display/AppearanceSettings.vue'
@@ -44,7 +46,9 @@ import {
 } from '@/providers/app-settings-modal'
 import { injectAppUpdateDownloadProgress } from '@/providers/download-progress.ts'
 
-// TODO: Apply COMPONENT_STRUCTURE.md here and extract out common setting option components
+const route = useRoute()
+const router = useRouter()
+
 const appSettings = useAppSettings()
 
 const { formatMessage } = useVIntl()
@@ -75,6 +79,7 @@ const tabCategories = defineMessages({
 
 const tabs = [
 	{
+		id: 'appearance',
 		name: defineMessage({
 			id: 'app.settings.tabs.appearance',
 			defaultMessage: 'Appearance',
@@ -84,6 +89,7 @@ const tabs = [
 		content: AppearanceSettings,
 	},
 	{
+		id: 'features',
 		name: defineMessage({
 			id: 'app.settings.tabs.features',
 			defaultMessage: 'Features',
@@ -93,6 +99,7 @@ const tabs = [
 		content: FeaturesSettings,
 	},
 	{
+		id: 'behavior',
 		name: defineMessage({
 			id: 'app.settings.tabs.behavior',
 			defaultMessage: 'Behavior',
@@ -102,6 +109,7 @@ const tabs = [
 		content: BehaviorSettings,
 	},
 	{
+		id: 'language',
 		name: defineMessage({
 			id: 'app.settings.tabs.language',
 			defaultMessage: 'Language',
@@ -112,6 +120,7 @@ const tabs = [
 		badge: commonMessages.beta,
 	},
 	{
+		id: 'feature-flags',
 		name: commonSettingsMessages.featureFlags,
 		category: tabCategories.display,
 		icon: ToggleRightIcon,
@@ -119,6 +128,7 @@ const tabs = [
 		developerOnly: true,
 	},
 	{
+		id: 'privacy',
 		name: defineMessage({
 			id: 'app.settings.tabs.privacy',
 			defaultMessage: 'Privacy',
@@ -128,6 +138,7 @@ const tabs = [
 		content: PrivacySettings,
 	},
 	{
+		id: 'synced-options',
 		name: defineMessage({
 			id: 'app.settings.tabs.synced-options',
 			defaultMessage: 'Synced settings',
@@ -137,6 +148,7 @@ const tabs = [
 		content: InstancesSyncedSettings,
 	},
 	{
+		id: 'java-installations',
 		name: defineMessage({
 			id: 'app.settings.tabs.java-installations',
 			defaultMessage: 'Java installations',
@@ -146,6 +158,7 @@ const tabs = [
 		content: JavaSettings,
 	},
 	{
+		id: 'resource-management',
 		name: defineMessage({
 			id: 'app.settings.tabs.resource-management',
 			defaultMessage: 'Resource management',
@@ -160,7 +173,17 @@ const availableTabs = computed(() =>
 	tabs.filter((tab) => !tab.developerOnly || appSettings.devMode),
 )
 
-const modal = ref<InstanceType<typeof TabbedModal> | null>(null)
+function tabIndexFromRoute(): number {
+	const requestedId = route.query.tab
+	if (typeof requestedId === 'string') {
+		const index = availableTabs.value.findIndex((tab) => tab.id === requestedId)
+		if (index >= 0) return index
+	}
+	return 0
+}
+
+const selectedTab = ref(tabIndexFromRoute())
+
 const unsavedChangesPopup = ref<{ nudge: () => void } | null>(null)
 const unsavedChangesController = ref<UnsavedChangesController | null>(null)
 const emptyUnsavedChangesState: Record<string, unknown> = {}
@@ -188,9 +211,24 @@ function canLeaveCurrentTab(): boolean {
 	return false
 }
 
-function close(): boolean {
-	return modal.value?.hide() ?? false
+function setTab(index: number) {
+	if (index === selectedTab.value) return
+	if (!canLeaveCurrentTab()) return
+	selectedTab.value = index
+	void router.replace({ query: { ...route.query, tab: availableTabs.value[index]?.id } })
 }
+
+function close(): boolean {
+	if (!canLeaveCurrentTab()) return false
+	if (window.history.state?.back) {
+		router.back()
+	} else {
+		void router.push('/')
+	}
+	return true
+}
+
+onBeforeRouteLeave(() => canLeaveCurrentTab())
 
 function registerUnsavedChangesController(controller: UnsavedChangesController | null): void {
 	unsavedChangesController.value = controller
@@ -209,31 +247,12 @@ function saveUnsavedChanges(): void {
 	void unsavedChangesController.value?.save()
 }
 
-function show() {
-	modal.value?.show()
-}
-
-function showFeatureFlags(): void {
-	const featureFlagsTabIndex = availableTabs.value.findIndex(
-		(tab) => tab.content === FeatureFlagSettings,
-	)
-	if (featureFlagsTabIndex >= 0) {
-		modal.value?.setTab(featureFlagsTabIndex)
-	}
-	modal.value?.show()
-}
-
-function showSyncedOptions(): void {
-	const syncedOptionsTabIndex = availableTabs.value.findIndex(
-		(tab) => tab.content === InstancesSyncedSettings,
-	)
-	if (syncedOptionsTabIndex >= 0) {
-		modal.value?.setTab(syncedOptionsTabIndex)
-	}
-	modal.value?.show()
-}
-
-defineExpose({ show, showFeatureFlags, showSyncedOptions })
+watch(
+	() => route.query.tab,
+	() => {
+		selectedTab.value = tabIndexFromRoute()
+	},
+)
 
 const { progress, version: downloadingVersion } = injectAppUpdateDownloadProgress()
 
@@ -258,15 +277,15 @@ const developerModeMutation = useMutation({
 	},
 	onMutate: () => queryClient.cancelQueries({ queryKey: appSettingsKeys.all }),
 	onSuccess: (settings) => {
-		const selectedTab = modal.value ? availableTabs.value[modal.value.selectedTab] : undefined
+		const selectedTabEntry = availableTabs.value[selectedTab.value]
 
 		queryClient.setQueryData(appSettingsKeys.all, settings)
 		appSettings.devMode = settings.developer_mode
 
-		if (modal.value) {
-			const selectedTabIndex = selectedTab ? availableTabs.value.indexOf(selectedTab) : -1
-			modal.value.setTab(selectedTabIndex >= 0 ? selectedTabIndex : 0)
-		}
+		const selectedTabIndex = selectedTabEntry
+			? availableTabs.value.indexOf(selectedTabEntry)
+			: -1
+		selectedTab.value = selectedTabIndex >= 0 ? selectedTabIndex : 0
 	},
 	onError: handleError,
 	onSettled: () => queryClient.invalidateQueries({ queryKey: appSettingsKeys.all }),
@@ -299,70 +318,104 @@ const messages = defineMessages({
 		defaultMessage: 'Toggle developer mode',
 	},
 })
+
+function startsCategory(index: number) {
+	const category = availableTabs.value[index]?.category
+	return !!category && category.id !== availableTabs.value[index - 1]?.category?.id
+}
 </script>
+
 <template>
-	<TabbedModal
-		ref="modal"
-		:tabs="availableTabs"
-		:width="'min(928px, calc(95vw - 10rem))'"
-		:before-hide="canLeaveCurrentTab"
-		:before-tab-change="canLeaveCurrentTab"
-		:floating-action-bar-shown="hasUnsavedChanges"
-	>
-		<template #title>
-			<span class="text-2xl font-semibold text-contrast">
-				{{ formatMessage(commonMessages.settingsLabel) }}
-			</span>
-		</template>
-		<template #floating-action-bar>
-			<UnsavedChangesPopup
-				ref="unsavedChangesPopup"
-				:original="originalUnsavedChangesState"
-				:modified="modifiedUnsavedChangesState"
-				:saving="savingUnsavedChanges"
-				inline
-				@reset="resetUnsavedChanges"
-				@save="saveUnsavedChanges"
-			/>
-		</template>
-		<template #footer>
-			<div class="mt-auto text-secondary text-sm">
-				<div class="mb-3">
-					<template v-if="progress > 0 && progress < 1">
-						<p class="m-0 mb-2">
-							{{ formatMessage(messages.downloading, { version: downloadingVersion }) }}
-						</p>
-						<ProgressBar :progress="progress" />
-					</template>
-				</div>
-				<p v-if="appSettings.devMode" class="text-brand font-semibold m-0 mb-2">
-					{{ formatMessage(developerModeEnabled) }}
-				</p>
-				<div class="flex items-center gap-3">
-					<button
-						:aria-label="formatMessage(messages.developerModeButtonLabel)"
-						:disabled="developerModeMutation.isPending.value"
-						class="p-0 m-0 bg-transparent border-none cursor-pointer button-animation"
-						:class="{
-							'text-brand': appSettings.devMode,
-							'text-secondary': !appSettings.devMode,
-						}"
-						@click="devModeCount"
+	<div class="flex h-full flex-col p-6">
+		<PageHeader :title="formatMessage(commonMessages.settingsLabel)" />
+		<div class="grid min-h-0 flex-1 grid-cols-[minmax(12.5rem,18rem)_minmax(0,1fr)] gap-6 pt-4">
+			<div
+				class="flex min-h-0 min-w-0 flex-col gap-1 overflow-y-auto border-0 border-r-[1px] border-solid border-divider pr-4"
+			>
+				<template v-for="(tab, index) in availableTabs" :key="tab.id">
+					<div
+						v-if="startsCategory(index) && tab.category"
+						class="shrink-0 truncate px-4 pb-1 pt-2 text-xs font-bold uppercase tracking-wide text-secondary"
 					>
-						<ModrinthIcon aria-hidden="true" class="w-6 h-6" />
+						{{ formatMessage(tab.category) }}
+					</div>
+					<button
+						:class="`flex min-w-0 shrink-0 gap-2 items-center text-left rounded-xl px-4 py-2 border-none font-semibold cursor-pointer active:scale-[0.97] transition-all ${selectedTab === index ? 'bg-button-bgSelected text-button-textSelected' : 'bg-transparent text-button-text hover:bg-button-bg hover:text-contrast'}`"
+						@click="setTab(index)"
+					>
+						<component :is="tab.icon" class="w-4 h-4 flex-shrink-0" />
+						<span class="min-w-0 flex-1 truncate">{{ formatMessage(tab.name) }}</span>
+						<span
+							v-if="tab.badge"
+							class="shrink-0 rounded-full px-1.5 py-0.5 text-xs font-bold bg-brand-highlight text-brand-green"
+						>
+							{{ formatMessage(tab.badge) }}
+						</span>
 					</button>
-					<div v-if="appInfo" class="max-w-[200px]">
-						<p class="m-0">
-							{{ formatMessage(messages.appVersion, { version: appInfo.version }) }}
-						</p>
-						<p class="m-0">
-							<span v-if="appInfo.osPlatform === 'macos'">{{ formatMessage(messages.macos) }}</span>
-							<span v-else class="capitalize">{{ appInfo.osPlatform }}</span>
-							{{ appInfo.osVersion }}
-						</p>
+				</template>
+
+				<div class="mt-auto pt-4 text-secondary text-sm">
+					<div class="mb-3">
+						<template v-if="progress > 0 && progress < 1">
+							<p class="m-0 mb-2">
+								{{ formatMessage(messages.downloading, { version: downloadingVersion }) }}
+							</p>
+							<ProgressBar :progress="progress" />
+						</template>
+					</div>
+					<p v-if="appSettings.devMode" class="text-brand font-semibold m-0 mb-2">
+						{{ formatMessage(developerModeEnabled) }}
+					</p>
+					<div class="flex items-center gap-3">
+						<button
+							:aria-label="formatMessage(messages.developerModeButtonLabel)"
+							:disabled="developerModeMutation.isPending.value"
+							class="p-0 m-0 bg-transparent border-none cursor-pointer button-animation"
+							:class="{
+								'text-brand': appSettings.devMode,
+								'text-secondary': !appSettings.devMode,
+							}"
+							@click="devModeCount"
+						>
+							<ModrinthIcon aria-hidden="true" class="w-6 h-6" />
+						</button>
+						<div v-if="appInfo" class="max-w-[200px]">
+							<p class="m-0">
+								{{ formatMessage(messages.appVersion, { version: appInfo.version }) }}
+							</p>
+							<p class="m-0">
+								<span v-if="appInfo.osPlatform === 'macos'">{{ formatMessage(messages.macos) }}</span>
+								<span v-else class="capitalize">{{ appInfo.osPlatform }}</span>
+								{{ appInfo.osVersion }}
+							</p>
+						</div>
 					</div>
 				</div>
 			</div>
-		</template>
-	</TabbedModal>
+			<div class="relative min-h-0">
+				<div class="absolute inset-0 overflow-y-auto pb-24">
+					<Suspense>
+						<component :is="availableTabs[selectedTab]?.content" v-if="availableTabs[selectedTab]?.content" />
+						<template #fallback>
+							<LoadingIndicator class="py-2" />
+						</template>
+					</Suspense>
+				</div>
+				<div class="pointer-events-none absolute bottom-0 left-0 right-0 z-20">
+					<div class="pointer-events-auto">
+						<UnsavedChangesPopup
+							ref="unsavedChangesPopup"
+							:original="originalUnsavedChangesState"
+							:modified="modifiedUnsavedChangesState"
+							:saving="savingUnsavedChanges"
+							:class="{ hidden: !hasUnsavedChanges }"
+							inline
+							@reset="resetUnsavedChanges"
+							@save="saveUnsavedChanges"
+						/>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 </template>

@@ -21,6 +21,11 @@ export default new createRouter({
 			component: () => import('@/pages/Skins.vue'),
 		},
 		{
+			path: '/settings',
+			name: 'Settings',
+			component: () => import('@/pages/Settings.vue'),
+		},
+		{
 			path: '/screenshots',
 			name: 'Screenshots',
 			component: () => import('@/pages/Screenshots.vue'),
