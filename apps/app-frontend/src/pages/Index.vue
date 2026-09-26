@@ -6,6 +6,7 @@ import dayjs from 'dayjs'
 import { computed, inject, ref } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 
+import GreetingHeader from '@/components/ui/GreetingHeader.vue'
 import LibrarySection from '@/components/ui/library/index.vue'
 import { libraryScrollTop } from '@/components/ui/library/view-state'
 import WelcomeScreen from '@/components/ui/WelcomeScreen.vue'
@@ -96,6 +97,7 @@ function openPageContextMenu(event: MouseEvent) {
 		class="flex flex-col gap-3 p-6"
 		@contextmenu="openPageContextMenu"
 	>
+		<GreetingHeader />
 		<RecentWorldsList
 			v-if="recentInstances?.length > 0 && appSettings.getFeatureFlag('worlds_in_home')"
 			:recent-instances="recentInstances"
