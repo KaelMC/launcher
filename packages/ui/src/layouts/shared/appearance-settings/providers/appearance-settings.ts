@@ -27,7 +27,7 @@ interface ThemeSettings {
 	system: AppearanceRef<AppearanceTheme>
 	preferredDark: AppearanceRef<AppearanceTheme>
 	update: AppearanceSetter<AppearanceThemeSelection>
-	syncAcrossDevices: AppearanceSetting<boolean>
+	syncAcrossDevices?: AppearanceSetting<boolean>
 }
 
 interface ProjectLayoutSettings {
@@ -57,8 +57,8 @@ export interface AppearanceSettingsProviderOptions {
 		system: AppearanceRef<AppearanceTheme>
 		preferredDark: AppearanceRef<AppearanceTheme>
 		set: AppearanceSetter<AppearanceThemeSelection>
-		syncAcrossDevices: WritableAppearanceSetting<boolean>
-		syncDisabled: AppearanceRef<boolean>
+		syncAcrossDevices?: WritableAppearanceSetting<boolean>
+		syncDisabled?: AppearanceRef<boolean>
 	}
 	advancedRendering: WritableAppearanceSetting<boolean>
 	nativeDecorations?: WritableAppearanceSetting<boolean>
@@ -124,14 +124,18 @@ export function provideAppearanceSettings(
 		try {
 			await syncThemePreference(theme)
 		} catch {
-			await options.theme.syncAcrossDevices.set(false)
+			await options.theme.syncAcrossDevices?.set(false)
 		}
 	}
 
 	async function updateTheme(theme: AppearanceThemeSelection): Promise<void> {
 		await options.theme.set(theme)
 		if (options.deferPersistence) return
-		if (!toValue(options.theme.syncAcrossDevices.value) || toValue(options.theme.syncDisabled)) {
+		if (
+			!options.theme.syncAcrossDevices ||
+			!toValue(options.theme.syncAcrossDevices.value) ||
+			toValue(options.theme.syncDisabled)
+		) {
 			return
 		}
 
@@ -139,7 +143,7 @@ export function provideAppearanceSettings(
 	}
 
 	async function updateThemeSync(enabled: boolean): Promise<void> {
-		if (toValue(options.theme.syncDisabled)) return
+		if (!options.theme.syncAcrossDevices || toValue(options.theme.syncDisabled)) return
 
 		await options.theme.syncAcrossDevices.set(enabled)
 		if (options.deferPersistence) return
@@ -201,11 +205,13 @@ export function provideAppearanceSettings(
 			system: options.theme.system,
 			preferredDark: options.theme.preferredDark,
 			update: updateTheme,
-			syncAcrossDevices: {
-				value: options.theme.syncAcrossDevices.value,
-				disabled: options.theme.syncDisabled,
-				update: updateThemeSync,
-			},
+			syncAcrossDevices: options.theme.syncAcrossDevices
+				? {
+						value: options.theme.syncAcrossDevices.value,
+						disabled: options.theme.syncDisabled,
+						update: updateThemeSync,
+					}
+				: undefined,
 		},
 		advancedRendering: createSetting(options.advancedRendering),
 		nativeDecorations: options.nativeDecorations

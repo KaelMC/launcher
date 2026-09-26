@@ -8,7 +8,6 @@ import {
 	PaintbrushIcon,
 	RefreshCwIcon,
 	Settings2Icon,
-	ShieldIcon,
 	ToggleRightIcon,
 } from '@modrinth/assets'
 import {
@@ -29,7 +28,6 @@ import { platform as getOsPlatform, version as getOsVersion } from '@tauri-apps/
 import { computed, provide, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
-import PrivacySettings from '@/components/ui/settings/account/PrivacySettings.vue'
 import AppearanceSettings from '@/components/ui/settings/display/AppearanceSettings.vue'
 import BehaviorSettings from '@/components/ui/settings/display/BehaviorSettings.vue'
 import FeatureFlagSettings from '@/components/ui/settings/display/FeatureFlagSettings.vue'
@@ -66,10 +64,6 @@ const tabCategories = defineMessages({
 	display: {
 		id: 'settings.sidebar.label.display',
 		defaultMessage: 'Display',
-	},
-	account: {
-		id: 'settings.sidebar.label.account',
-		defaultMessage: 'Account',
 	},
 	instances: {
 		id: 'app.settings.sidebar.label.instances',
@@ -126,16 +120,6 @@ const tabs = [
 		icon: ToggleRightIcon,
 		content: FeatureFlagSettings,
 		developerOnly: true,
-	},
-	{
-		id: 'privacy',
-		name: defineMessage({
-			id: 'app.settings.tabs.privacy',
-			defaultMessage: 'Privacy',
-		}),
-		category: tabCategories.account,
-		icon: ShieldIcon,
-		content: PrivacySettings,
 	},
 	{
 		id: 'synced-options',

@@ -16,8 +16,9 @@ const currentTheme = theme.current
 const themeOptions = theme.options
 const systemTheme = theme.system
 const preferredDarkTheme = theme.preferredDark
-const syncAcrossDevices = theme.syncAcrossDevices.value
-const syncDisabled = theme.syncAcrossDevices.disabled
+const syncAcrossDevices = theme.syncAcrossDevices
+const syncAcrossDevicesValue = syncAcrossDevices?.value
+const syncDisabled = syncAcrossDevices?.disabled
 const advancedRendering = appearance.advancedRendering.value
 const nativeDecorations = appearance.nativeDecorations
 const nativeDecorationsValue = nativeDecorations?.value
@@ -52,6 +53,7 @@ const sidebarPreferenceValues = sidebarPreferences?.value
 			/>
 
 			<AppearanceSettingRow
+				v-if="syncAcrossDevices"
 				class="mt-6"
 				control-id="sync-theme-across-devices"
 				:heading-level="3"
@@ -67,10 +69,10 @@ const sidebarPreferenceValues = sidebarPreferences?.value
 					>
 						<Toggle
 							id="sync-theme-across-devices"
-							:model-value="syncDisabled ? false : syncAcrossDevices"
+							:model-value="syncDisabled ? false : syncAcrossDevicesValue"
 							:disabled="syncDisabled"
 							:aria-labelledby="labelledBy"
-							@update:model-value="theme.syncAcrossDevices.update"
+							@update:model-value="syncAcrossDevices?.update"
 						/>
 					</span>
 				</template>

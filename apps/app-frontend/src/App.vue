@@ -608,9 +608,6 @@ async function setupApp() {
 		hide_nametag_skins_page,
 		advanced_rendering,
 		toggle_sidebar,
-		sync_theme_across_devices,
-		sync_behavior_across_devices,
-		sync_features_across_devices,
 		show_files_tab_in_instances,
 		show_worlds_tab_in_instances,
 		show_screenshots_tab_in_instances,
@@ -645,9 +642,6 @@ async function setupApp() {
 
 	appTheme.preferred = theme
 	appTheme.advancedRendering = advanced_rendering
-	appTheme.syncAcrossDevices = sync_theme_across_devices
-	appSettings.syncBehaviorAcrossDevices = sync_behavior_across_devices
-	appSettings.syncFeaturesAcrossDevices = sync_features_across_devices
 	appSettings.hideNametagSkinsPage = hide_nametag_skins_page
 	appSettings.toggleSidebar = toggle_sidebar
 	appSettings.showFilesTabInInstances = show_files_tab_in_instances
