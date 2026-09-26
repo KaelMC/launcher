@@ -31,6 +31,11 @@ export default new createRouter({
 			component: () => import('@/pages/Screenshots.vue'),
 		},
 		{
+			path: '/servers',
+			name: 'Servers',
+			component: () => import('@/pages/Servers.vue'),
+		},
+		{
 			path: '/user/:user/:projectType?',
 			name: 'User',
 			component: () => import('@/pages/User.vue'),

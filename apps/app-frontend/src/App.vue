@@ -16,6 +16,7 @@ import {
 	PlusIcon,
 	RefreshCwIcon,
 	RightArrowIcon,
+	ServerStackIcon,
 	SettingsIcon,
 	ShirtIcon,
 } from '@modrinth/assets'
@@ -520,6 +521,10 @@ const messages = defineMessages({
 	screenshots: {
 		id: 'app.nav.screenshots',
 		defaultMessage: 'Screenshots',
+	},
+	servers: {
+		id: 'app.nav.servers',
+		defaultMessage: 'Servers',
 	},
 	createNewInstance: {
 		id: 'app.nav.create-new-instance',
@@ -1594,6 +1599,9 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 				to="/screenshots"
 			>
 				<ImageIcon />
+			</NavButton>
+			<NavButton v-tooltip.right="formatMessage(messages.servers)" to="/servers">
+				<ServerStackIcon />
 			</NavButton>
 			<suspense>
 				<QuickInstanceSwitcher>
