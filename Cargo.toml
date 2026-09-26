@@ -118,7 +118,6 @@ ts-rs = "12.0.1"
 typed-path = "0.12.0"
 url = "2.5.7"
 urlencoding = "2.1.3"
-utoipa = { version = "5.4.0", features = ["actix_extras", "chrono", "decimal"] }
 uuid = "1.18.1"
 webview2-com = "0.38.0"  # Should be updated in lockstep with wry
 whoami = "1.6.1"

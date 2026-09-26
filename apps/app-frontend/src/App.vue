@@ -130,6 +130,7 @@ import {
 	setRestartAfterPendingUpdate,
 } from '@/helpers/utils.js'
 import { start_join_server, start_join_singleplayer_world } from '@/helpers/worlds.ts'
+import { setLocale } from '@/i18n.config'
 import { instanceListQueryOptions } from '@/pages/instance/query-options'
 import {
 	appUpdateState,
