@@ -4,6 +4,7 @@ import { CheckIcon, PlayIcon, StopCircleIcon } from '@modrinth/assets'
 import { defineMessages, IconButton, useVIntl } from '@modrinth/ui'
 import { useEventListener, useMagicKeys } from '@vueuse/core'
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import ServerCardView from '@/components/ui/servers-library/server-group/server-card-view.vue'
 import {
@@ -41,6 +42,7 @@ const messages = defineMessages({
 })
 const { displayState, selectedLibraryInstances, isLibraryInstanceSelectionActive } =
 	useServersLibrary()
+const router = useRouter()
 
 const props = defineProps<{
 	server: FakeServer
@@ -100,16 +102,29 @@ const stop = (event: MouseEvent | null) => {
 	toggleServerStatus(props.server.id)
 }
 
+const seeServer = async () => {
+	await router.push(`/servers/${encodeURIComponent(props.server.id)}`)
+}
+
 const activateCard = (event: MouseEvent) => {
 	if (isLibraryInstanceSelectionActive.value || event.shiftKey) {
 		toggleSelection(event)
+	} else {
+		void seeServer()
 	}
 }
 
 const handleCardKeydown = (event: KeyboardEvent) => {
 	if (event.target !== event.currentTarget) return
 
-	if (event.key === 'Enter' || (event.key === ' ' && isLibraryInstanceSelectionActive.value)) {
+	if (event.key === 'Enter') {
+		event.preventDefault()
+		if (isLibraryInstanceSelectionActive.value) {
+			toggleSelection()
+		} else {
+			void seeServer()
+		}
+	} else if (event.key === ' ' && isLibraryInstanceSelectionActive.value) {
 		event.preventDefault()
 		toggleSelection()
 	}

@@ -36,6 +36,34 @@ export default new createRouter({
 			component: () => import('@/pages/Servers.vue'),
 		},
 		{
+			path: '/servers/:id',
+			name: 'Server',
+			component: () => import('@/pages/server/layout.vue'),
+			children: [
+				{
+					path: '',
+					name: 'ServerContent',
+					component: () => import('@/pages/server/content/index.vue'),
+				},
+				{
+					path: 'files',
+					name: 'ServerFiles',
+					component: () => import('@/pages/server/files/index.vue'),
+				},
+				{
+					path: 'worlds',
+					name: 'ServerWorlds',
+					component: () => import('@/pages/server/worlds/index.vue'),
+				},
+				{
+					path: 'logs',
+					name: 'ServerLogs',
+					component: () => import('@/pages/server/logs/index.vue'),
+					meta: { renderMode: 'fixed' },
+				},
+			],
+		},
+		{
 			path: '/user/:user/:projectType?',
 			name: 'User',
 			component: () => import('@/pages/User.vue'),
