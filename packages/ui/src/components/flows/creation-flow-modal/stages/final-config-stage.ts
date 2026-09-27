@@ -21,7 +21,7 @@ export const stageConfig: StageConfigInput<CreationFlowContextValue> = {
 	id: 'final-config',
 	title: (ctx) => ctx.formatMessage(flowTypeHeadingMessages[ctx.flowType]),
 	stageContent: markRaw(FinalConfigStage),
-	skip: (ctx) => ctx.flowType === 'instance' || ctx.isImportMode.value,
+	skip: (ctx) => ctx.flowType === 'instance' || ctx.flowType === 'server' || ctx.isImportMode.value,
 	cannotNavigateForward: isForwardBlocked,
 	leftButtonConfig: (ctx) => ({
 		label: ctx.formatMessage(commonMessages.backButton),

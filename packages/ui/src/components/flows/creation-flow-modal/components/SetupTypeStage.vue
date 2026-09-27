@@ -48,7 +48,7 @@
 			{{ setupTypeTitle }}
 		</span>
 
-		<template v-if="ctx.flowType === 'instance'">
+		<template v-if="ctx.flowType === 'instance' || ctx.flowType === 'server'">
 			<div class="flex flex-col gap-3">
 				<BigOptionButton
 					:icon="BoxesIcon"
@@ -69,6 +69,7 @@
 					@click="triggerFileInput"
 				/>
 				<BigOptionButton
+					v-if="ctx.flowType === 'instance'"
 					:icon="BoxImportIcon"
 					:title="formatMessage(messages.importInstanceTitle)"
 					:description="formatMessage(messages.importInstanceDescription)"
@@ -162,6 +163,10 @@ const messages = defineMessages({
 		id: 'creation-flow.modal.setup-type.title.instance',
 		defaultMessage: 'Choose instance type',
 	},
+	serverTypeTitle: {
+		id: 'creation-flow.modal.setup-type.title.server',
+		defaultMessage: 'Choose server type',
+	},
 	installationTypeTitle: {
 		id: 'creation-flow.modal.setup-type.title.installation',
 		defaultMessage: 'Select installation type',
@@ -216,6 +221,9 @@ const setupTypeTitle = computed(() => {
 	if (ctx.flowType === 'instance') {
 		return formatMessage(messages.instanceTypeTitle)
 	}
+	if (ctx.flowType === 'server') {
+		return formatMessage(messages.serverTypeTitle)
+	}
 	if (ctx.flowType === 'server-onboarding' || ctx.flowType === 'reset-server') {
 		return formatMessage(messages.installationTypeTitle)
 	}
@@ -239,7 +247,7 @@ function selectModpack() {
 function proceedWithModpack() {
 	if (ctx.finishDisabled.value) return
 
-	if (ctx.flowType === 'instance') {
+	if (ctx.flowType === 'instance' || ctx.flowType === 'server') {
 		ctx.finish()
 	} else {
 		ctx.modal.value?.setStage('final-config')
@@ -328,7 +336,7 @@ watch(
 		if (!projectId) return
 		const hit = ctx.projectSearchHits.value[projectId]
 
-		if (ctx.flowType === 'instance') {
+		if (ctx.flowType === 'instance' || ctx.flowType === 'server') {
 			void ctx.selectProject(projectId, hit?.projectType ?? 'mod')
 			return
 		}

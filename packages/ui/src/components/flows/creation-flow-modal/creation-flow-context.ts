@@ -18,7 +18,7 @@ import type { MultiStageModal, StageConfigInput } from '../../base'
 import type { ComboboxOption } from '../../base/Combobox.vue'
 import { stageConfigs } from './stages'
 
-export type FlowType = 'world' | 'server-onboarding' | 'reset-server' | 'instance'
+export type FlowType = 'world' | 'server-onboarding' | 'reset-server' | 'instance' | 'server'
 export type SetupType = 'modpack' | 'custom' | 'vanilla'
 export type Gamemode = 'survival' | 'creative' | 'hardcore'
 export type Difficulty = 'peaceful' | 'easy' | 'normal' | 'hard'
@@ -53,6 +53,10 @@ export const creationFlowMessages = defineMessages({
 		id: 'creation-flow.title.create-instance',
 		defaultMessage: 'Create instance',
 	},
+	createServerTitle: {
+		id: 'creation-flow.title.create-server',
+		defaultMessage: 'New server',
+	},
 	createWorldButton: {
 		id: 'creation-flow.button.create-world',
 		defaultMessage: 'Create world',
@@ -60,6 +64,10 @@ export const creationFlowMessages = defineMessages({
 	createInstanceButton: {
 		id: 'creation-flow.button.create-instance',
 		defaultMessage: 'Create instance',
+	},
+	createServerButton: {
+		id: 'creation-flow.button.create-server',
+		defaultMessage: 'Create server',
 	},
 	setupServerButton: {
 		id: 'creation-flow.button.setup-server',
@@ -88,6 +96,7 @@ export const flowTypeHeadingMessages: Record<FlowType, MessageDescriptor> = {
 	'server-onboarding': creationFlowMessages.setUpServerTitle,
 	'reset-server': creationFlowMessages.resetServerTitle,
 	instance: creationFlowMessages.createInstanceTitle,
+	server: creationFlowMessages.createServerTitle,
 }
 
 export interface ModpackSelection {

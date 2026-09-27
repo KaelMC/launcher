@@ -41,7 +41,7 @@
 		</div>
 
 		<!-- Instance-specific: Icon upload -->
-		<div v-if="ctx.flowType === 'instance'" class="flex items-center gap-2.5">
+		<div v-if="ctx.flowType === 'instance' || ctx.flowType === 'server'" class="flex items-center gap-2.5">
 			<div class="group relative size-[7.75rem] shrink-0">
 				<Avatar
 					:src="ctx.instanceIconUrl.value ?? undefined"
@@ -86,7 +86,7 @@
 		</div>
 
 		<!-- Instance-specific: Name field -->
-		<div v-if="ctx.flowType === 'instance'" class="flex flex-col gap-2">
+		<div v-if="ctx.flowType === 'instance' || ctx.flowType === 'server'" class="flex flex-col gap-2">
 			<span class="font-semibold text-contrast">{{ formatMessage(messages.nameLabel) }}</span>
 			<Input
 				v-model="ctx.instanceName.value"
@@ -97,7 +97,7 @@
 		<!-- Loader chips -->
 		<div v-if="!hideLoaderChips" class="flex flex-col gap-2">
 			<span class="font-semibold text-contrast">{{
-				ctx.flowType === 'instance'
+				ctx.flowType === 'instance' || ctx.flowType === 'server'
 					? formatMessage(messages.loaderLabel)
 					: formatMessage(messages.contentLoaderLabel)
 			}}</span>
@@ -350,7 +350,7 @@ const effectiveLoaders = computed(() => {
 	if (ctx.projectInstall.value) {
 		return ctx.projectInstall.value.compatibleLoaders
 	}
-	if (ctx.flowType === 'instance') {
+	if (ctx.flowType === 'instance' || ctx.flowType === 'server') {
 		return ['vanilla', ...ctx.availableLoaders.filter((l) => l !== 'vanilla')]
 	}
 	if (ctx.flowType === 'server-onboarding' || ctx.flowType === 'reset-server') {
@@ -362,12 +362,14 @@ const effectiveLoaders = computed(() => {
 // Pre-select loader and game version from initial values
 onMounted(() => {
 	debug('mounted, initialLoader:', ctx.initialLoader, 'initialGameVersion:', ctx.initialGameVersion)
-	if (ctx.flowType === 'instance') {
+	if (ctx.flowType === 'instance' || ctx.flowType === 'server') {
 		void randomizeIcon()
 	}
 	if (!selectedLoader.value) {
 		if (ctx.initialLoader) {
 			selectedLoader.value = ctx.initialLoader
+		} else if (ctx.flowType === 'server') {
+			selectedLoader.value = 'paper'
 		} else {
 			selectedLoader.value = 'fabric'
 		}

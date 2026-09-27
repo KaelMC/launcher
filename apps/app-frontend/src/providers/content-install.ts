@@ -22,6 +22,7 @@ import {
 	get_team,
 	get_version_many,
 } from '@/helpers/cache.js'
+import { createServer } from '@/helpers/fake-servers'
 import {
 	install_create_instance,
 	install_create_modpack_instance,
@@ -38,6 +39,10 @@ import {
 	remove_project,
 	type ResolveContentPlan,
 } from '@/helpers/instance'
+import {
+	cancelServerCreationFromBrowse,
+	consumeServerCreationFromBrowse,
+} from '@/helpers/server-creation-intent'
 import { get_game_versions } from '@/helpers/tags'
 import type { GameInstance, InstanceLoader } from '@/helpers/types'
 import type { AppEvents } from '@/providers/app-events'
@@ -840,6 +845,10 @@ export function createContentInstall(opts: {
 			return
 		}
 
+		if (project.project_type !== 'modpack') {
+			cancelServerCreationFromBrowse()
+		}
+
 		if (project.project_type === 'modpack') {
 			let version = versionId ?? null
 			if (!version) {
@@ -857,6 +866,20 @@ export function createContentInstall(opts: {
 				}
 				version ??= project.versions[project.versions.length - 1]
 			}
+
+			if (consumeServerCreationFromBrowse()) {
+				createServer(project.title, project.raw_icon_url ?? null)
+				trackEvent('PackInstall', {
+					id: project.id,
+					version_id: version,
+					title: project.title,
+					source,
+				})
+				callback(version)
+				opts.router.push('/servers')
+				return
+			}
+
 			const packs = await list()
 			const existingPack = packs.find((pack) => pack.link?.project_id === project.id)
 

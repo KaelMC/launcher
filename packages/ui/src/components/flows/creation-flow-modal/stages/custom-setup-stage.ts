@@ -34,15 +34,18 @@ export const stageConfig: StageConfigInput<CreationFlowContextValue> = {
 	}),
 	rightButtonConfig: (ctx) => {
 		const isInstance = ctx.flowType === 'instance'
+		const isServer = ctx.flowType === 'server'
 		const goesToNextStage =
 			ctx.flowType === 'world' ||
 			ctx.flowType === 'server-onboarding' ||
 			ctx.flowType === 'reset-server'
 		const disabled = isForwardBlocked(ctx)
 
-		if (isInstance) {
+		if (isInstance || isServer) {
 			return {
-				label: ctx.formatMessage(creationFlowMessages.createInstanceButton),
+				label: ctx.formatMessage(
+					isServer ? creationFlowMessages.createServerButton : creationFlowMessages.createInstanceButton,
+				),
 				icon: PlusIcon,
 				iconPosition: 'before' as const,
 				color: 'brand' as const,
