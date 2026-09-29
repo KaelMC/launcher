@@ -45,7 +45,7 @@
 					:class="{ 'opacity-60': selectedGroupInstanceIds.has(instance.id) }"
 				>
 					<div class="flex min-w-0 items-center gap-2.5">
-						<Avatar :src="instance.icon_url ?? undefined" :tint-by="instance.id" :alt="instance.name" size="2rem" rounded="md" pad-transparent-corners />
+						<Avatar :src="getServerIconUrl(instance.icon_path) ?? undefined" :tint-by="instance.id" :alt="instance.name" size="2rem" rounded="md" pad-transparent-corners />
 						<span class="truncate font-semibold text-contrast">{{ instance.name }}</span>
 					</div>
 					<Button
@@ -84,6 +84,7 @@ import { Avatar, Button, commonMessages, defineMessages, Input, NewModal, useVIn
 import { ref, watch } from 'vue'
 
 import { useServersLibrary } from '@/components/ui/servers-library/use-server-library'
+import { getServerIconUrl } from '@/helpers/server'
 
 const { formatMessage } = useVIntl()
 const messages = defineMessages({

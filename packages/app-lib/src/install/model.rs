@@ -191,6 +191,11 @@ pub enum InstallRequest {
         #[serde(default)]
         post_install_edit: Option<InstallPostInstallEdit>,
     },
+    DownloadServer {
+        server_id: String,
+        server_name: String,
+        icon_path: Option<String>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -220,6 +225,7 @@ impl InstallRequest {
             Self::InstallPackToExistingInstance { .. } => {
                 InstallJobKind::InstallPackToExistingInstance
             }
+            Self::DownloadServer { .. } => InstallJobKind::DownloadServer,
         }
     }
 
@@ -261,6 +267,7 @@ pub enum InstallJobKind {
     DuplicateInstance,
     InstallExistingInstance,
     InstallPackToExistingInstance,
+    DownloadServer,
 }
 
 impl InstallJobKind {
@@ -274,6 +281,7 @@ impl InstallJobKind {
             Self::InstallPackToExistingInstance => {
                 "install_pack_to_existing_instance"
             }
+            Self::DownloadServer => "download_server",
         }
     }
 
@@ -286,6 +294,7 @@ impl InstallJobKind {
             "install_pack_to_existing_instance" => {
                 Self::InstallPackToExistingInstance
             }
+            "download_server" => Self::DownloadServer,
             _ => Self::CreateInstance,
         }
     }
@@ -381,6 +390,7 @@ pub enum InstallPhaseId {
     ResolvingLoader,
     PreparingJava,
     DownloadingMinecraft,
+    DownloadingServer,
     RunningLoaderProcessors,
     Finalizing,
     RollingBack,

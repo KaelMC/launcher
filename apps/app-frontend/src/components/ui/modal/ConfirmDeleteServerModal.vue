@@ -34,7 +34,7 @@
 							class="flex min-w-0 items-center gap-2.5 rounded-[20px] border border-solid border-transparent bg-surface-2 p-3"
 						>
 							<Avatar
-							:src="instance.icon_url ?? undefined"
+							:src="getServerIconUrl(instance.icon_path) ?? undefined"
 							:tint-by="instance.id"
 							size="40px"
 							class="!rounded-xl"
@@ -46,7 +46,7 @@
 									{{ instance.name }}
 								</span>
 								<span class="truncate text-sm font-medium text-secondary">
-									{{ instance.status === 'running' ? 'Running' : 'Stopped' }}
+									{{ runningServerIds.has(instance.id) ? 'Running' : 'Stopped' }}
 								</span>
 							</div>
 						</div>
@@ -97,6 +97,7 @@ import {
 } from '@modrinth/ui'
 import { computed, nextTick, ref } from 'vue'
 
+import { getServerIconUrl, runningServerIds } from '@/helpers/server'
 import type { FakeServer } from '@/helpers/types-servers'
 
 const { formatMessage } = useVIntl()

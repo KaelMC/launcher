@@ -4,7 +4,7 @@
 			<PageHeader :title="server.name">
 				<template #leading>
 					<Avatar
-						:src="server.icon_url ?? undefined"
+						:src="getServerIconUrl(server.icon_path) ?? undefined"
 						:alt="server.name"
 						size="64px"
 						:tint-by="server.id"
@@ -37,14 +37,37 @@
 							color="red"
 							size="xl"
 							native-type="button"
-							@click="toggleStatus"
+							@click="() => stopServer(serverId)"
 						>
 							<StopCircleIcon />
 							{{ formatMessage(commonMessages.stopButton) }}
 						</Button>
-						<Button v-else type="colored" color="brand" size="xl" native-type="button" @click="toggleStatus">
+						<Button
+							v-else-if="server.install_stage === 'failed'"
+							type="colored"
+							color="brand"
+							size="xl"
+							native-type="button"
+							@click="() => retryServerInstall(serverId)"
+						>
 							<PlayIcon />
-							{{ formatMessage(commonMessages.playButton) }}
+							Retry download
+						</Button>
+						<Button
+							v-else
+							type="colored"
+							color="brand"
+							size="xl"
+							native-type="button"
+							:disabled="server.install_stage !== 'installed'"
+							@click="() => startServer(serverId)"
+						>
+							<PlayIcon />
+							{{
+								server.install_stage === 'installing'
+									? downloadProgressLabel
+									: formatMessage(commonMessages.playButton)
+							}}
 						</Button>
 
 						<IconButton
@@ -68,6 +91,11 @@
 					</PageHeaderActions>
 				</template>
 			</PageHeader>
+		</div>
+		<div v-if="server.install_stage === 'failed' && server.install_error" class="px-6 pb-4">
+			<div class="rounded-xl bg-red-highlight px-4 py-3 text-sm text-red">
+				Failed to download server: {{ server.install_error }}
+			</div>
 		</div>
 		<div class="px-6">
 			<NavTabs :links="tabs" />
@@ -152,7 +180,21 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import ConfirmDeleteServerModal from '@/components/ui/modal/ConfirmDeleteServerModal.vue'
-import { editServer, fakeServers, removeServer, toggleServerStatus } from '@/helpers/fake-servers'
+import { useInstallJobDisplay } from '@/components/ui/download-manager/use-install-job-display'
+import { useAppEvent } from '@/composables/use-app-event'
+import type { InstallJobSnapshot } from '@/generated/app-events/InstallJobSnapshot'
+import { install_job_get } from '@/helpers/install'
+import {
+	applyServerProcessEvent,
+	getServerIconUrl,
+	renameServer,
+	removeServer,
+	retryServerInstall,
+	runningServerIds,
+	servers,
+	startServer,
+	stopServer,
+} from '@/helpers/server'
 import { useRootBreadcrumb } from '@/providers/breadcrumbs'
 
 import { provideServerPage } from './server-context'
@@ -177,10 +219,42 @@ const messages = defineMessages({
 	logsTab: { id: 'app.server.tab.logs', defaultMessage: 'Logs' },
 })
 
+useAppEvent('process', applyServerProcessEvent)
+
 const serverId = computed(() => String(route.params.id ?? ''))
-const server = computed(() => fakeServers.value.find((candidate) => candidate.id === serverId.value))
-const playing = computed(() => server.value?.status === 'running')
+const server = computed(() => servers.value.find((candidate) => candidate.id === serverId.value))
+const playing = computed(() => runningServerIds.value.has(serverId.value))
 const statusIcon = computed(() => (playing.value ? PlayIcon : StopCircleIcon))
+
+const jobDisplay = useInstallJobDisplay()
+const installJob = ref<InstallJobSnapshot | null>(null)
+
+async function refreshInstallJob() {
+	const jobId = server.value?.install_job_id
+	if (!jobId) {
+		installJob.value = null
+		return
+	}
+	try {
+		installJob.value = await install_job_get(jobId)
+	} catch {
+		installJob.value = null
+	}
+}
+
+watch(() => server.value?.install_job_id, refreshInstallJob, { immediate: true })
+
+useAppEvent('install_job', (job) => {
+	if (job.job_id === server.value?.install_job_id) installJob.value = job
+})
+
+const downloadProgressLabel = computed(() => {
+	if (!installJob.value) return 'Downloading...'
+	const text = jobDisplay.getText(installJob.value) || 'Downloading...'
+	const progress = jobDisplay.getEffectiveProgress(installJob.value)
+	if (!progress || progress.total <= 0) return text
+	return `${text} ${Math.round(jobDisplay.getProgress(installJob.value) * 100)}%`
+})
 
 watch(
 	[serverId, server],
@@ -201,7 +275,11 @@ const tabs = computed(() => [
 ])
 
 function toggleStatus() {
-	toggleServerStatus(serverId.value)
+	if (playing.value) {
+		void stopServer(serverId.value)
+	} else {
+		void startServer(serverId.value)
+	}
 }
 
 const renameModal = ref<InstanceType<typeof NewModal>>()
@@ -212,18 +290,18 @@ function openSettings() {
 	renameModal.value?.show()
 }
 
-function saveRename() {
+async function saveRename() {
 	const trimmedName = renameValue.value.trim()
 	if (!trimmedName) return
 
-	editServer(serverId.value, { name: trimmedName })
+	await renameServer(serverId.value, trimmedName)
 	renameModal.value?.hide()
 }
 
 const confirmDeleteModal = ref<InstanceType<typeof ConfirmDeleteServerModal>>()
 
-function handleDelete() {
-	removeServer(serverId.value)
+async function handleDelete() {
+	await removeServer(serverId.value)
 	void router.push('/servers')
 }
 
@@ -244,7 +322,7 @@ useRootBreadcrumb({
 	label: () => server.value?.name ?? formatMessage(commonMessages.loadingLabel),
 	visual: () => ({
 		type: 'image',
-		src: server.value?.icon_url ?? undefined,
+		src: getServerIconUrl(server.value?.icon_path) ?? undefined,
 		tintBy: server.value?.id ?? serverId.value,
 	}),
 	to: () => basePath.value,

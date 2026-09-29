@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE servers SET jar_path = ?, modified = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "c9b6c60d31c8f944137af0d1696c23f9c51116f7300e024b8da5a0769113ef3e"
+}

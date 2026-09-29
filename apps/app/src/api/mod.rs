@@ -12,6 +12,8 @@ pub mod metadata;
 pub mod minecraft_skins;
 pub mod onboarding_checklist;
 pub mod process;
+pub mod server;
+pub mod server_files;
 pub mod settings;
 pub mod shortcuts;
 pub mod tags;

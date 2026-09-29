@@ -1,20 +1,30 @@
 <script setup lang="ts">
 import { Avatar, TagItem, truncatedTooltip } from '@modrinth/ui'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
+import { getServerIconUrl } from '@/helpers/server'
 import type { FakeServer } from '@/helpers/types-servers'
 
-withDefaults(
+const props = withDefaults(
 	defineProps<{
 		server: FakeServer
+		playing?: boolean
 		selected?: boolean
 	}>(),
 	{
+		playing: false,
 		selected: false,
 	},
 )
 
 const nameRef = ref<HTMLElement | null>(null)
+const statusLabel = computed(() => {
+	if (props.server.install_stage === 'installing') return 'Downloading...'
+	if (props.server.install_stage === 'failed') return 'Download failed'
+	if (props.server.install_stage === 'not_installed') return 'Not installed'
+	return props.playing ? 'Running' : 'Stopped'
+})
+const iconUrl = computed(() => getServerIconUrl(props.server.icon_path) ?? undefined)
 </script>
 
 <template>
@@ -30,7 +40,7 @@ const nameRef = ref<HTMLElement | null>(null)
 			<Avatar
 				class="pointer-events-none !rounded-2xl outline-none"
 				size="100%"
-				:src="server.icon_url ?? undefined"
+				:src="iconUrl"
 				:tint-by="server.id"
 				alt=""
 				no-shadow
@@ -48,12 +58,9 @@ const nameRef = ref<HTMLElement | null>(null)
 			>
 				{{ server.name }}
 			</p>
-			<TagItem :class="server.status === 'running' ? '!text-brand' : ''">
-				<span
-					class="mr-1 inline-block size-1.5 rounded-full"
-					:class="server.status === 'running' ? 'bg-brand' : 'bg-secondary'"
-				/>
-				{{ server.status === 'running' ? 'Running' : 'Stopped' }}
+			<TagItem :class="playing ? '!text-brand' : ''">
+				<span class="mr-1 inline-block size-1.5 rounded-full" :class="playing ? 'bg-brand' : 'bg-secondary'" />
+				{{ statusLabel }}
 			</TagItem>
 		</div>
 		<slot name="overlay" />

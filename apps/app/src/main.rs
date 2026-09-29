@@ -259,6 +259,8 @@ fn main() {
         .plugin(api::metadata::init())
         .plugin(api::minecraft_skins::init())
         .plugin(api::process::init())
+        .plugin(api::server::init())
+        .plugin(api::server_files::init())
         .plugin(api::settings::init())
         .plugin(api::shortcuts::init())
         .plugin(api::tags::init())

@@ -37,6 +37,12 @@ const copyStages: readonly Stage[] = [
 	['finalizing', 1],
 ]
 
+const serverDownloadStages: readonly Stage[] = [
+	['downloading_server', 80],
+	['preparing_java', 15],
+	['finalizing', 5],
+]
+
 const stagesByKind: Record<InstallJobSnapshot['kind'], readonly Stage[]> = {
 	create_instance: instanceStages,
 	create_modpack_instance: packStages,
@@ -44,6 +50,7 @@ const stagesByKind: Record<InstallJobSnapshot['kind'], readonly Stage[]> = {
 	duplicate_instance: copyStages,
 	install_existing_instance: instanceStages,
 	install_pack_to_existing_instance: packStages,
+	download_server: serverDownloadStages,
 }
 
 /** Estimates whole-job progress from stage counters, preserving progress within an attempt. */

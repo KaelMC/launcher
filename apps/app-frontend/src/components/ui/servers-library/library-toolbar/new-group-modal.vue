@@ -54,7 +54,7 @@
 					:class="{ 'opacity-60': selectedNewGroupInstanceIds.has(instance.id) }"
 				>
 					<div class="flex min-w-0 items-center gap-2.5">
-						<Avatar :src="instance.icon_url ?? undefined" :tint-by="instance.id" :alt="instance.name" size="2rem" rounded="md" pad-transparent-corners />
+						<Avatar :src="getServerIconUrl(instance.icon_path) ?? undefined" :tint-by="instance.id" :alt="instance.name" size="2rem" rounded="md" pad-transparent-corners />
 						<div class="flex min-w-0 items-center gap-2">
 							<span class="truncate font-semibold text-contrast">{{ instance.name }}</span>
 							<TagItem v-if="instance.group_ids[0]" class="shrink-0">
@@ -97,6 +97,7 @@ import { Avatar, Button, defineMessages, Input, NewModal, TagItem, useVIntl } fr
 import { computed, ref, watch } from 'vue'
 
 import { useServersLibrary } from '@/components/ui/servers-library/use-server-library'
+import { getServerIconUrl } from '@/helpers/server'
 import { MAX_SERVER_GROUP_NAME_LENGTH } from '@/helpers/server-groups'
 
 const { formatMessage } = useVIntl()

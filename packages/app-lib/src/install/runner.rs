@@ -584,6 +584,13 @@ async fn prepare_initial_instance(
         } => {
             prepare_existing_rollback(job_state, state, &instance_id).await?;
         }
+        InstallRequest::DownloadServer { .. } => {
+            return Err(crate::ErrorKind::OtherError(
+                "Server downloads cannot be retried from here; retry from the server's own page"
+                    .to_string(),
+            )
+            .into());
+        }
     }
 
     Ok(())
@@ -1066,6 +1073,13 @@ async fn run_request(
             apply_post_install_edit(&instance_id, post_install_edit).await?;
             Ok(Some(instance_id))
         }
+        InstallRequest::DownloadServer { .. } => {
+            Err(crate::ErrorKind::OtherError(
+                "Server downloads cannot be retried from here; retry from the server's own page"
+                    .to_string(),
+            )
+            .into())
+        }
     }
 }
 
@@ -1500,6 +1514,7 @@ fn install_error_code(
             ExtractingOverrides => "path_error",
             PreparingJava => "java_error",
             DownloadingMinecraft => "instance_error",
+            DownloadingServer => "network_error",
             RollingBack => "rollback_error",
             ResolvingMinecraft | ResolvingLoader | RunningLoaderProcessors => {
                 "launcher_error"
@@ -1529,6 +1544,7 @@ fn install_error_code(
                     | ResolvingLoader
                     | PreparingJava
                     | DownloadingMinecraft
+                    | DownloadingServer
             ) =>
         {
             "network_error"

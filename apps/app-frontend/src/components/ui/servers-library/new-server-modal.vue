@@ -17,16 +17,18 @@
 
 <script setup lang="ts">
 import type { CreationFlowContextValue } from '@modrinth/ui'
-import { CreationFlowModal } from '@modrinth/ui'
+import { CreationFlowModal, injectNotificationManager } from '@modrinth/ui'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import IconEditorModal from '@/components/ui/instance_settings/icon-editor-modal/index.vue'
 import { get_search_results } from '@/helpers/cache.js'
-import { createServer, fakeServers } from '@/helpers/fake-servers'
+import { createServer, servers, type ServerLoader } from '@/helpers/server'
 import { beginServerCreationFromBrowse } from '@/helpers/server-creation-intent'
 import type { InstanceIconConfig } from '@/helpers/types'
+
+const { handleError } = injectNotificationManager()
 
 const props = defineProps<{
 	modelValue: boolean
@@ -55,7 +57,7 @@ watch(
 )
 
 async function fetchExistingServerNames() {
-	return fakeServers.value.map((server) => server.name)
+	return servers.value.map((server) => server.name)
 }
 
 async function searchProjects(query: string, limit: number = 10) {
@@ -101,16 +103,32 @@ function handleBrowseModpacks() {
 	router.push('/browse/modpack')
 }
 
-function handleCreate(config: CreationFlowContextValue) {
-	creationFlowModal.value?.hide()
+async function handleCreate(config: CreationFlowContextValue) {
+	try {
+		const loader = (config.selectedLoader.value ?? 'vanilla') as ServerLoader
+		const gameVersion = config.selectedGameVersion.value
+		if (!gameVersion) return
 
-	if (config.modpackSelection.value) {
-		const { name, iconUrl } = config.modpackSelection.value
-		createServer(name, iconUrl ?? null)
-		return
+		const name =
+			config.instanceName.value.trim() ||
+			config.autoInstanceName.value ||
+			config.modpackSelection.value?.name ||
+			'New Server'
+		const iconPath = config.instanceIconPath.value ?? null
+
+		creationFlowModal.value?.hide()
+
+		const server = await createServer(
+			name,
+			iconPath,
+			loader,
+			loader === 'vanilla' ? null : (config.selectedLoaderVersion.value ?? null),
+			gameVersion,
+		)
+
+		await router.push(`/servers/${encodeURIComponent(server.id)}`)
+	} catch (error) {
+		handleError(error)
 	}
-
-	const name = config.instanceName.value.trim() || config.autoInstanceName.value || 'New Server'
-	createServer(name, config.instanceIconUrl.value ?? null)
 }
 </script>

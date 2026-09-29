@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n\t\t\tINSERT INTO servers\n\t\t\t\t(id, name, icon_path, loader, loader_version, game_version,\n\t\t\t\t install_stage, created, modified)\n\t\t\tVALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)\n\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": []
+  },
+  "hash": "c906b8de673c7b52d88e9f0f67649a78c1fcb66ba091b5694b76ce2f507cd1dd"
+}

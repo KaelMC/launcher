@@ -440,6 +440,7 @@ fn phase_label(phase: InstallPhaseId) -> &'static str {
         InstallPhaseId::ResolvingLoader => "resolving loader",
         InstallPhaseId::PreparingJava => "preparing Java",
         InstallPhaseId::DownloadingMinecraft => "downloading Minecraft",
+        InstallPhaseId::DownloadingServer => "downloading server software",
         InstallPhaseId::RunningLoaderProcessors => "running loader processors",
         InstallPhaseId::Finalizing => "finalizing",
         InstallPhaseId::RollingBack => "rolling back",

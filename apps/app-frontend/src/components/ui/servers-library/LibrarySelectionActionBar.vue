@@ -59,7 +59,7 @@ import {
 	useServersLibrary,
 } from '@/components/ui/servers-library/use-server-library'
 import ConfirmDeleteServerModal from '@/components/ui/modal/ConfirmDeleteServerModal.vue'
-import { removeServer } from '@/helpers/fake-servers'
+import { removeServer } from '@/helpers/server'
 import { set_group_memberships as setServerGroupMemberships } from '@/helpers/server-groups'
 
 const { formatMessage } = useVIntl()
@@ -149,7 +149,7 @@ async function deleteSelectedInstances() {
 	deleting.value = true
 	const instanceIds = [...selectedInstanceIds.value]
 	for (const instanceId of instanceIds) {
-		removeServer(instanceId)
+		await removeServer(instanceId)
 	}
 
 	setSelectedLibraryInstances(

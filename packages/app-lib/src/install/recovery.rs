@@ -549,6 +549,14 @@ fn display_from_request(state: &InstallJobState) -> Option<InstallJobDisplay> {
                 icon: rollback.instance.instance.icon_path.clone(),
             })
         }
+        InstallRequest::DownloadServer {
+            server_name,
+            icon_path,
+            ..
+        } => Some(InstallJobDisplay {
+            title: server_name.clone(),
+            icon: icon_path.clone(),
+        }),
     }
 }
 

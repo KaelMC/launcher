@@ -5,8 +5,11 @@ import { onActivated, provide, ref } from 'vue'
 
 import ServersLibrarySection from '@/components/ui/servers-library/index.vue'
 import NewServerModal from '@/components/ui/servers-library/new-server-modal.vue'
-import { fakeServers } from '@/helpers/fake-servers'
+import { useAppEvent } from '@/composables/use-app-event'
+import { applyServerProcessEvent, servers } from '@/helpers/server'
 import { useRootBreadcrumb } from '@/providers/breadcrumbs'
+
+useAppEvent('process', applyServerProcessEvent)
 
 defineOptions({ name: 'ServersPage' })
 
@@ -31,7 +34,7 @@ provide('showNewServerModal', () => {
 
 <template>
 	<div data-servers-library-page-background class="flex flex-col gap-3 p-6">
-		<ServersLibrarySection :instances="fakeServers" />
+		<ServersLibrarySection :instances="servers" />
 	</div>
 	<NewServerModal v-model="isNewServerModalOpen" />
 </template>

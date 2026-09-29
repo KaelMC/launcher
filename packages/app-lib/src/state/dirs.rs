@@ -11,6 +11,7 @@ use tokio::fs;
 pub const CACHES_FOLDER_NAME: &str = "caches";
 pub const LAUNCHER_LOGS_FOLDER_NAME: &str = "launcher_logs";
 pub const INSTANCES_FOLDER_NAME: &str = "profiles";
+pub const SERVERS_FOLDER_NAME: &str = "servers";
 pub const METADATA_FOLDER_NAME: &str = "meta";
 pub const SYNCED_OPTIONS_FOLDER_NAME: &str = "synced-options";
 pub const STORE_FOLDER_NAME: &str = "store";
@@ -188,6 +189,24 @@ impl DirectoryInfo {
         self.instances_dir()
             .join(instance_path)
             .join("crash-reports")
+    }
+
+    /// Get the locally-hosted servers directory
+    #[inline]
+    pub fn servers_dir(&self) -> PathBuf {
+        self.config_dir.join(SERVERS_FOLDER_NAME)
+    }
+
+    /// Get the directory for a given locally-hosted server
+    #[inline]
+    pub fn server_dir(&self, server_id: &str) -> PathBuf {
+        self.servers_dir().join(server_id)
+    }
+
+    /// Gets the logs dir for a given locally-hosted server
+    #[inline]
+    pub fn server_logs_dir(&self, server_id: &str) -> PathBuf {
+        self.server_dir(server_id).join("logs")
     }
 
     #[inline]

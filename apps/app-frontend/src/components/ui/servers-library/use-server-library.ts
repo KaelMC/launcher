@@ -12,7 +12,7 @@ import {
 	watch,
 } from 'vue'
 
-import { removeServer, toggleServerStatus } from '@/helpers/fake-servers'
+import { removeServer, runningServerIds } from '@/helpers/server'
 import {
 	create_group as createServerGroup,
 	delete_group as deleteServerGroup,
@@ -233,8 +233,8 @@ function createServersLibraryState(instances: Ref<FakeServer[]>) {
 
 	const filteredInstances = computed(() =>
 		instances.value.filter((instance) => {
-			const statusMatches =
-				filters.value.status.length === 0 || filters.value.status.includes(instance.status)
+			const status = runningServerIds.value.has(instance.id) ? 'running' : 'stopped'
+			const statusMatches = filters.value.status.length === 0 || filters.value.status.includes(status)
 
 			return statusMatches
 		}),
@@ -700,7 +700,7 @@ function createServersLibraryState(instances: Ref<FakeServer[]>) {
 	const deleteInstance = async () => {
 		if (!currentDeleteInstanceId.value) return
 
-		removeServer(currentDeleteInstanceId.value)
+		await removeServer(currentDeleteInstanceId.value)
 		currentDeleteInstanceId.value = null
 	}
 
@@ -842,7 +842,6 @@ function createServersLibraryState(instances: Ref<FakeServer[]>) {
 		moveGroup,
 		deleteInstance,
 		handleInstanceContextMenu,
-		toggleServerStatus,
 	}
 }
 

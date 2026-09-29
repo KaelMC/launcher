@@ -481,6 +481,10 @@ function deserialize_INSTALL_JOB_KIND(d) {
         return {
             tag: "install_pack_to_existing_instance"
         };
+    case 6:
+        return {
+            tag: "download_server"
+        };
     default:
         throw "variant not implemented"
     }
@@ -582,13 +586,17 @@ function deserialize_INSTALL_PHASE_ID(d) {
         };
     case 10:
         return {
-            tag: "running_loader_processors"
+            tag: "downloading_server"
         };
     case 11:
         return {
-            tag: "finalizing"
+            tag: "running_loader_processors"
         };
     case 12:
+        return {
+            tag: "finalizing"
+        };
+    case 13:
         return {
             tag: "rolling_back"
         };

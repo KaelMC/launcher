@@ -101,6 +101,8 @@
 		"users:default",
 		"utils:default",
 		"ads:default",
-		"worlds:default"
+		"worlds:default",
+		"server:default",
+		"server-files:default"
 	]
 }

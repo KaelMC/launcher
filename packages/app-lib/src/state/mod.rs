@@ -33,6 +33,9 @@ pub use self::onboarding_checklist::*;
 mod process;
 pub use self::process::*;
 
+mod servers;
+pub use self::servers::*;
+
 mod java_globals;
 pub use self::java_globals::*;
 
@@ -92,6 +95,9 @@ pub struct State {
 
     /// Process manager
     pub process_manager: ProcessManager,
+
+    /// Process manager for locally-hosted servers
+    pub server_process_manager: ServerProcessManager,
 
     // NOTE: we explicitly must NOT store the app identifier in the state object,
     // because creating the state object is fallible (e.g. database missing),
@@ -332,6 +338,7 @@ impl State {
         let file_watcher = instances::watcher::init_watcher().await?;
 
         let process_manager = ProcessManager::new();
+        let server_process_manager = ServerProcessManager::new();
 
         Ok(Arc::new(Self {
             startup_complete: AtomicBool::new(false),
@@ -350,6 +357,7 @@ impl State {
             pack_sync_worker: crate::api::instance::PackSyncWorker::default(),
             discord_rpc,
             process_manager,
+            server_process_manager,
             restart_after_pending_update: AtomicBool::new(false),
             pool,
             file_watcher,

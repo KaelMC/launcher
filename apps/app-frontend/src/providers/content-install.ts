@@ -22,7 +22,7 @@ import {
 	get_team,
 	get_version_many,
 } from '@/helpers/cache.js'
-import { createServer } from '@/helpers/fake-servers'
+import { createServer } from '@/helpers/server'
 import {
 	install_create_instance,
 	install_create_modpack_instance,
@@ -868,7 +868,26 @@ export function createContentInstall(opts: {
 			}
 
 			if (consumeServerCreationFromBrowse()) {
-				createServer(project.title, project.raw_icon_url ?? null)
+				// Local server hosting only supports downloading real server
+				// software (vanilla/paper/etc), not installing an arbitrary
+				// modpack's mod list. Create a vanilla server on the
+				// modpack's game version as the closest honest equivalent.
+				const [versionInfo] = version
+					? ((await get_version_many(
+							[version],
+							'must_revalidate',
+						)) as Labrinth.Versions.v2.Version[])
+					: []
+				const gameVersion = versionInfo?.game_versions?.[0]
+				if (gameVersion) {
+					await createServer(
+						project.title,
+						project.raw_icon_url ?? null,
+						'vanilla',
+						null,
+						gameVersion,
+					)
+				}
 				trackEvent('PackInstall', {
 					id: project.id,
 					version_id: version,

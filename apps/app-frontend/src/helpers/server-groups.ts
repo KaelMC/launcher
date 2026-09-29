@@ -1,6 +1,6 @@
 import { useStorage } from '@vueuse/core'
 
-import { fakeServers } from '@/helpers/fake-servers'
+import { clearGroupFromAllServers, setStoredGroupIds } from '@/helpers/server'
 
 export const FAVORITES_GROUP_ID = 'group:favorites'
 export const MAX_SERVER_GROUP_NAME_LENGTH = 256
@@ -40,11 +40,7 @@ export async function rename_group(id: string, newName: string): Promise<ServerG
 
 export async function delete_group(id: string): Promise<void> {
 	groups.value = groups.value.filter((group) => group.id !== id)
-	fakeServers.value = fakeServers.value.map((server) =>
-		server.group_ids.includes(id)
-			? { ...server, group_ids: server.group_ids.filter((groupId) => groupId !== id) }
-			: server,
-	)
+	clearGroupFromAllServers(id)
 }
 
 export async function set_group_order(groupIds: string[]): Promise<void> {
@@ -56,10 +52,7 @@ export async function set_group_order(groupIds: string[]): Promise<void> {
 }
 
 export async function set_group_memberships(updates: ServerGroupMembershipUpdate[]): Promise<void> {
-	const updatesByServerId = new Map(updates.map((update) => [update.instance_id, update.group_ids]))
-	fakeServers.value = fakeServers.value.map((server) =>
-		updatesByServerId.has(server.id)
-			? { ...server, group_ids: updatesByServerId.get(server.id)!, modified: new Date().toISOString() }
-			: server,
-	)
+	for (const update of updates) {
+		setStoredGroupIds(update.instance_id, update.group_ids)
+	}
 }

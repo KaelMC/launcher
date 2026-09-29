@@ -121,7 +121,9 @@ export function useDownloadManager() {
 					job.paused || job.canceling
 						? ''
 						: display.formatEta(transfer.get(job.job_id, now.value).eta),
-				canRetry: job.status === 'failed' || job.status === 'interrupted',
+				canRetry:
+					job.kind !== 'download_server' &&
+					(job.status === 'failed' || job.status === 'interrupted'),
 				canCopyDetails:
 					job.status === 'failed' ||
 					job.status === 'interrupted' ||

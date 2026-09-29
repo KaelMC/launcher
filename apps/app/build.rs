@@ -410,6 +410,42 @@ fn main() {
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,
                     ),
+            )
+            .plugin(
+                "server",
+                InlinedPlugin::new()
+                    .commands(&[
+                        "server_list",
+                        "server_get",
+                        "server_create",
+                        "server_retry_install",
+                        "server_rename",
+                        "server_remove",
+                        "server_start",
+                        "server_stop",
+                        "server_send_command",
+                        "server_is_running",
+                        "server_get_log_buffer",
+                        "server_list_running",
+                    ])
+                    .default_permission(
+                        DefaultPermissionRule::AllowAllCommands,
+                    ),
+            )
+            .plugin(
+                "server-files",
+                InlinedPlugin::new()
+                    .commands(&[
+                        "server_file_list",
+                        "server_file_read",
+                        "server_file_write",
+                        "server_file_create_directory",
+                        "server_file_rename",
+                        "server_file_delete",
+                    ])
+                    .default_permission(
+                        DefaultPermissionRule::AllowAllCommands,
+                    ),
             ),
     )
     .expect("Failed to run tauri-build");

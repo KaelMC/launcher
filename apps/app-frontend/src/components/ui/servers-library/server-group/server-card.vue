@@ -11,7 +11,7 @@ import {
 	getServerSelectionKey,
 	useServersLibrary,
 } from '@/components/ui/servers-library/use-server-library'
-import { toggleServerStatus } from '@/helpers/fake-servers'
+import { runningServerIds, startServer, stopServer } from '@/helpers/server'
 import type { FakeServer } from '@/helpers/types-servers'
 
 const serverCardSensors = [
@@ -55,7 +55,7 @@ const emit = defineEmits<{
 }>()
 
 const serverCardElement = ref<InstanceType<typeof ServerCardView> | null>(null)
-const playing = computed(() => props.server.status === 'running')
+const playing = computed(() => runningServerIds.value.has(props.server.id))
 const selectionKey = computed(() =>
 	getServerSelectionKey({ instanceId: props.server.id, groupId: props.instanceGroupId }),
 )
@@ -94,12 +94,12 @@ useEventListener(window, 'blur', resetPrimaryPointer)
 
 const play = (event: MouseEvent | null) => {
 	event?.stopPropagation()
-	toggleServerStatus(props.server.id)
+	void startServer(props.server.id)
 }
 
 const stop = (event: MouseEvent | null) => {
 	event?.stopPropagation()
-	toggleServerStatus(props.server.id)
+	void stopServer(props.server.id)
 }
 
 const seeServer = async () => {
@@ -149,6 +149,7 @@ defineExpose({
 			'scale-[0.95]': isPrimaryPointerDown && !isLibraryInstanceSelectionActive,
 		}"
 		:server="server"
+		:playing="playing"
 		:selected="selected"
 		data-servers-library-server-card
 		:data-server-id="server.id"

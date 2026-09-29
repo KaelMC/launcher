@@ -31,6 +31,10 @@ const kindMessages = defineMessages({
 		id: 'app.download-manager.modpack-installation',
 		defaultMessage: 'Modpack installation',
 	},
+	download_server: {
+		id: 'app.download-manager.server-download',
+		defaultMessage: 'Server download',
+	},
 })
 
 const phaseMessages = defineMessages({
@@ -73,6 +77,10 @@ const phaseMessages = defineMessages({
 	downloading_minecraft: {
 		id: 'app.install.phase.downloading_minecraft',
 		defaultMessage: 'Downloading Minecraft',
+	},
+	downloading_server: {
+		id: 'app.install.phase.downloading_server',
+		defaultMessage: 'Downloading server software',
 	},
 	running_loader_processors: {
 		id: 'app.install.phase.running_loader_processors',
@@ -352,7 +360,8 @@ export function useInstallJobDisplay() {
 		if (
 			job.phase === 'downloading_pack_file' ||
 			job.phase === 'extracting_overrides' ||
-			job.phase === 'downloading_minecraft'
+			job.phase === 'downloading_minecraft' ||
+			job.phase === 'downloading_server'
 		) {
 			return 'bytes'
 		}

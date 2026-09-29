@@ -35,6 +35,8 @@ pub(crate) mod hooks;
 
 pub mod download;
 pub mod quick_play_version;
+pub mod server_download;
+pub mod server_launch;
 
 // All nones -> disallowed
 // 1+ true -> allowed

@@ -394,6 +394,272 @@ impl ProcessManager {
     }
 }
 
+/// A lightweight, parallel process manager for locally-hosted Minecraft
+/// servers. Unlike [`ProcessManager`], it does not persist processes to the
+/// `processes` table (which is foreign-keyed to `instances`), does not track
+/// playtime or synced options, and additionally supports writing to the
+/// child's stdin for a graceful `stop` shutdown.
+pub struct ServerProcessManager {
+    processes: DashMap<Uuid, ServerProcess>,
+}
+
+impl Default for ServerProcessManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Debug)]
+struct ServerProcess {
+    metadata: ProcessMetadata,
+    child: Child,
+    stdin: Option<tokio::process::ChildStdin>,
+}
+
+impl ServerProcessManager {
+    pub fn new() -> Self {
+        Self {
+            processes: DashMap::new(),
+        }
+    }
+
+    pub async fn insert_new_process(
+        &self,
+        server_id: &str,
+        server_path: &str,
+        server_name: &str,
+        mut command: Command,
+        logs_folder: PathBuf,
+    ) -> crate::Result<ProcessMetadata> {
+        command.stdout(std::process::Stdio::piped());
+        command.stderr(std::process::Stdio::piped());
+        command.stdin(std::process::Stdio::piped());
+
+        if !logs_folder.exists() {
+            tokio::fs::create_dir_all(&logs_folder)
+                .await
+                .map_err(|e| IOError::with_path(e, &logs_folder))?;
+        }
+
+        let log_path = logs_folder.join(LAUNCHER_LOG_PATH);
+        clear_log_buffer(server_id);
+
+        {
+            let mut log_file = OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(&log_path)
+                .map_err(|e| IOError::with_path(e, &log_path))?;
+
+            let now = chrono::Local::now();
+            writeln!(
+                log_file,
+                "# Server launcher log started at {}",
+                now.format("%Y-%m-%d %H:%M:%S")
+            )
+            .map_err(|e| IOError::with_path(e, &log_path))?;
+            writeln!(log_file).map_err(|e| IOError::with_path(e, &log_path))?;
+        }
+
+        let mut child = command.spawn().map_err(IOError::from)?;
+        let stdout = child.stdout.take();
+        let stderr = child.stderr.take();
+        let stdin = child.stdin.take();
+
+        let metadata = ProcessMetadata {
+            uuid: Uuid::new_v4(),
+            start_time: Utc::now(),
+            instance_id: server_id.to_string(),
+            instance_path: server_path.to_string(),
+            instance_name: server_name.to_string(),
+        };
+
+        if let Some(stdout) = stdout {
+            let log_path_clone = log_path.clone();
+            let server_id = server_id.to_string();
+            let server_path = server_path.to_string();
+            tokio::spawn(async move {
+                Process::process_output(
+                    &server_id,
+                    &server_path,
+                    stdout,
+                    log_path_clone,
+                    false,
+                )
+                .await;
+            });
+        }
+
+        if let Some(stderr) = stderr {
+            let log_path_clone = log_path.clone();
+            let server_id = server_id.to_string();
+            let server_path = server_path.to_string();
+            tokio::spawn(async move {
+                Process::process_output(
+                    &server_id,
+                    &server_path,
+                    stderr,
+                    log_path_clone,
+                    false,
+                )
+                .await;
+            });
+        }
+
+        self.processes.insert(
+            metadata.uuid,
+            ServerProcess {
+                metadata: metadata.clone(),
+                child,
+                stdin,
+            },
+        );
+
+        tokio::spawn(Self::watch_exit(server_id.to_string(), metadata.uuid));
+
+        emit_process(
+            server_id,
+            metadata.uuid,
+            ProcessPayloadType::Launched,
+            "Launched server",
+        )
+        .await?;
+
+        Ok(metadata)
+    }
+
+    async fn watch_exit(server_id: String, uuid: Uuid) {
+        loop {
+            let done = match Self::try_wait_static(uuid).await {
+                Ok(done) => done,
+                Err(_) => break,
+            };
+            if done {
+                break;
+            }
+            tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+        }
+
+        let _ = emit_process(
+            &server_id,
+            uuid,
+            ProcessPayloadType::Finished,
+            "Server process exited",
+        )
+        .await;
+    }
+
+    async fn try_wait_static(uuid: Uuid) -> crate::Result<bool> {
+        let state = crate::State::get().await?;
+        match state.server_process_manager.try_wait(uuid)? {
+            Some(Some(_)) => {
+                state.server_process_manager.processes.remove(&uuid);
+                Ok(true)
+            }
+            Some(None) => Ok(false),
+            None => Ok(true),
+        }
+    }
+
+    pub fn get(&self, id: Uuid) -> Option<ProcessMetadata> {
+        self.processes.get(&id).map(|x| x.metadata.clone())
+    }
+
+    pub fn get_all(&self) -> Vec<ProcessMetadata> {
+        self.processes
+            .iter()
+            .map(|x| x.value().metadata.clone())
+            .collect()
+    }
+
+    pub fn find_by_server_id(&self, server_id: &str) -> Option<Uuid> {
+        self.processes
+            .iter()
+            .find(|x| x.value().metadata.instance_id == server_id)
+            .map(|x| *x.key())
+    }
+
+    pub fn try_wait(
+        &self,
+        id: Uuid,
+    ) -> crate::Result<Option<Option<ExitStatus>>> {
+        if let Some(mut process) = self.processes.get_mut(&id) {
+            Ok(Some(process.child.try_wait()?))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Writes a line (a newline is appended) to the process's stdin, e.g. a
+    /// server console command.
+    pub async fn write_stdin(
+        &self,
+        id: Uuid,
+        line: &str,
+    ) -> crate::Result<()> {
+        use tokio::io::AsyncWriteExt;
+
+        let mut stdin = {
+            let mut process =
+                self.processes.get_mut(&id).ok_or_else(|| {
+                    crate::ErrorKind::OtherError(
+                        "Server process not found".to_string(),
+                    )
+                })?;
+            process.stdin.take()
+        };
+
+        if let Some(handle) = stdin.as_mut() {
+            handle.write_all(line.as_bytes()).await?;
+            handle.write_all(b"\n").await?;
+            handle.flush().await?;
+        }
+
+        if let Some(mut process) = self.processes.get_mut(&id) {
+            process.stdin = stdin;
+        }
+
+        Ok(())
+    }
+
+    /// Writes `stop` to the process's stdin, then waits up to
+    /// `timeout_secs` seconds for it to exit gracefully before force-killing
+    /// it.
+    pub async fn stop_gracefully(
+        &self,
+        id: Uuid,
+        timeout_secs: u64,
+    ) -> crate::Result<()> {
+        self.write_stdin(id, "stop").await?;
+
+        let deadline = tokio::time::Instant::now()
+            + tokio::time::Duration::from_secs(timeout_secs);
+        while tokio::time::Instant::now() < deadline {
+            match self.try_wait(id) {
+                Ok(Some(Some(_))) | Ok(None) => return Ok(()),
+                Ok(Some(None)) => {
+                    tokio::time::sleep(tokio::time::Duration::from_millis(
+                        250,
+                    ))
+                    .await;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+
+        self.kill(id).await
+    }
+
+    pub async fn kill(&self, id: Uuid) -> crate::Result<()> {
+        if let Some(mut process) = self.processes.get_mut(&id) {
+            process.child.kill().await?;
+        }
+
+        Ok(())
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ProcessMetadata {
     pub uuid: Uuid,

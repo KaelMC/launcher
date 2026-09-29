@@ -10,7 +10,9 @@ pub mod minecraft_skins;
 pub mod onboarding_checklist;
 pub mod pack;
 pub mod process;
+pub mod server;
 pub mod server_address;
+pub mod server_files;
 pub mod settings;
 pub mod tags;
 pub mod users;
@@ -28,7 +30,8 @@ pub mod data {
         JavaVersion, LinkedModpackInfo, MemorySettings, ModLoader,
         OnboardingChecklist, Organization, OwnerType, ProcessMetadata, Project,
         ProjectType, ProjectV3, SearchResult, SearchResults, SearchResultsV3,
-        Settings, TeamMember, Theme, User, Version, WindowSize,
+        Server, ServerInstallStage, ServerLoader, Settings, TeamMember, Theme,
+        User, Version, WindowSize,
     };
     pub use modrinth_content_management::{
         ContentType, ResolutionPreferences, ResolveContentPlan,
@@ -42,7 +45,7 @@ pub mod prelude {
         data::*,
         event::CommandPayload,
         install, instance, jre, metadata, minecraft_auth, onboarding_checklist,
-        pack, process, settings,
+        pack, process, server, server_files, settings,
         state::{ReleaseChannel, db_backup::app_db_backup_dir},
         util::{
             io::{IOError, canonicalize},
